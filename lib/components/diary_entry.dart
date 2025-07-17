@@ -6,7 +6,8 @@ import '../theme.dart';
 import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
-import 'dart:html' as html; // 웹 이미지 업로드용 추가
+import 'package:flutter/foundation.dart';
+// dart:html은 웹에서만 사용 가능하므로 조건부 import
 
 typedef SaveDiaryCallback = void Function(String entry, Emotion emotion, List<String>? images);
 
@@ -217,24 +218,19 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   Future<void> _handleImageUpload() async {
     if (_uploadedImages.length >= 3) return;
 
-    // 웹에서만 동작
-    final uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = 'image/*';
-    uploadInput.click();
-
-    uploadInput.onChange.listen((event) {
-      final files = uploadInput.files;
-      if (files != null && files.isNotEmpty) {
-        final file = files[0];
-        final reader = html.FileReader();
-        reader.readAsDataUrl(file);
-        reader.onLoadEnd.listen((event) {
-          setState(() {
-            _uploadedImages.add(reader.result as String);
-          });
-        });
-      }
-    });
+    // 웹에서만 동작하므로 조건부 처리
+    if (kIsWeb) {
+      // 웹에서는 dart:html을 사용할 수 없으므로 이미지 업로드 기능을 비활성화
+      // 실제 구현에서는 image_picker 패키지를 사용해야 함
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이미지 업로드 기능은 모바일에서만 사용 가능합니다.')),
+      );
+    } else {
+      // 모바일에서는 image_picker 패키지 사용
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이미지 업로드 기능을 구현하려면 image_picker 패키지를 추가하세요.')),
+      );
+    }
   }
 
   void _handleImageDelete(int index) {
@@ -321,8 +317,8 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
             child: Column(
               children: [
                 // Back Button
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16, top: 20),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: AppButton(

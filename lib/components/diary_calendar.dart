@@ -163,7 +163,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
 
     // Empty cells for days before the first day of the month
     for (int i = 0; i < firstDayOfMonth; i++) {
-      days.add(const SizedBox(height: 64));
+      days.add(const SizedBox(height: 90));
     }
 
     // Days of the month
@@ -176,14 +176,15 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
 
       days.add(
         SizedBox(
-          height: 64,
+          height: 90, // 셀 높이를 늘려서 이모지가 짤리지 않도록 함
           child: Stack(
+            clipBehavior: Clip.none, // 이모지가 짤리지 않도록 설정
             children: [
               Positioned.fill(
                 child: Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: Material(
-                    color: AppColors.calendarDateBg,
+                    color: AppColors.calendarBg,
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
@@ -214,36 +215,33 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                                 ),
                               ),
                             ),
-                          // 숫자 위치 조정
+                          // 숫자 - 항상 중앙에 고정
                           Positioned.fill(
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                bottom: dayData != null && widget.emoticonEnabled ? 16 : 0,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  day.toString(),
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                                    color: isToday 
-                                      ? AppColors.primary
-                                      : AppColors.mutedForeground,
-                                  ),
+                            child: Center(
+                              child: Text(
+                                day.toString(),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                  color: isToday 
+                                    ? AppColors.primary
+                                    : AppColors.mutedForeground,
                                 ),
                               ),
                             ),
                           ),
-                          // 이모티콘 - 상단에 배치
+                          // 이모티콘 - Transform으로 셀 밖으로 이동 (절대 짤리지 않음)
                           if (dayData != null && widget.emoticonEnabled)
-                            Positioned.fill(
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Align(
-                                  alignment: Alignment.topCenter,
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: Transform.translate(
+                                  offset: const Offset(0, -20),
                                   child: Text(
                                     dayData.emoji,
-                                    style: const TextStyle(fontSize: 18),
+                                    style: const TextStyle(fontSize: 14),
                                   ),
                                 ),
                               ),
@@ -496,10 +494,22 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
           constraints: const BoxConstraints(maxWidth: 448), // max-w-md
           child: Column(
             children: [
-              // Header with Settings
+              // Header with Logo and Settings
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Logo
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16), // 원하는 만큼 조절 (예: 16)
+                    child: Container(
+                      height: 50,
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  // Settings Button
                   AppButton(
                     onPressed: widget.onSettingsClick,
                     variant: ButtonVariant.ghost,

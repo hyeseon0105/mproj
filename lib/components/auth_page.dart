@@ -46,14 +46,19 @@ class _AuthPageState extends State<AuthPage> {
                 // Logo/Title
                 Column(
                   children: [
-                    Text(
-                      '하루그램',
-                      style: TextStyle(
-                        fontSize: 30.0, // text-3xl
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.foreground,
-                      ),
-                      textAlign: TextAlign.center,
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Background Logo (옅게 표시)
+                        Opacity(
+                          opacity: 0.5,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: 280,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8), // mb-2
                     Text(
