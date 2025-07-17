@@ -14,14 +14,17 @@ class MyPage extends StatefulWidget {
 }
 
 class _MyPageState extends State<MyPage> {
+  final GlobalKey _birthdayInputKey = GlobalKey(); // 생일 입력 박스의 위치를 찾기 위한 키
   bool _voiceEnabled = true;
   double _voiceVolume = 50;
   String _userName = '사용자';
   bool _isProfileDialogOpen = false;
   bool _isEmojiDialogOpen = false;
   bool _isPremiumModalOpen = false;
+  bool _isCalendarVisible = false;
   String _tempName = '사용자';
   DateTime? _tempBirthday;
+  DateTime _currentCalendarDate = DateTime.now(); // 현재 표시중인 달력의 년/월 상태 추가
   
   // Emoji categories state
   Map<Emotion, List<String>> _emojiCategories = {
@@ -51,12 +54,20 @@ class _MyPageState extends State<MyPage> {
     // 과일
     '🍎', '🍊', '🍋', '🍌', '🍍', '🥭', '🍑', '🍒', '🍓', '🫐', '🥝', '🍅', '🫒', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍇', '🍈', '🍉',
     // 동물
-    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐈', '🪶', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦫',
+    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐈', '🪶', '🐓', '🦃', '🦚', '🦜', '🦢', '🐇', '🦝', '🦨', '🦡', '🦫',
     // 도형
     '⭐', '🌟', '✨', '⚡', '💥', '🔥', '🌈', '☀️', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💠', '🔘', '🔳', '🔲',
     // 날씨
     '☀️', '🌤️', '⛅', '🌥️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '🌪️', '🌫️', '🌈', '☂️', '☔', '⚡', '🌊', '💧', '💦', '🧊'
   ];
+
+  // 카테고리별 사용 가능한 이모티콘 맵 추가
+  final Map<Emotion, List<String>> _availableEmoticonsByCategory = {
+    Emotion.shape: ['⭐', '🌟', '✨', '⚡', '💥', '🔥', '🌈', '☀️', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💠', '🔘', '🔳', '🔲'],
+    Emotion.fruit: ['🍎', '🍊', '🍋', '🍌', '🍍', '🥭', '🍑', '🍒', '🍓', '🫐', '🥝', '🍅', '🫒', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍇', '🍈', '🍉'],
+    Emotion.animal: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐈', '🪶', '🐓', '🦃', '🦚', '🦜', '🦢', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦫'],
+    Emotion.weather: ['☀️', '🌤️', '⛅', '🌥️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '🌪️', '🌫️', '🌈', '☂️', '☔', '⚡', '🌊', '💧', '💦', '🧊'],
+  };
 
   @override
   void initState() {
@@ -91,11 +102,18 @@ class _MyPageState extends State<MyPage> {
 
   void _handleEmojiSelect(String emoji) {
     setState(() {
-      if (_emojiCategories[_selectedEmotion]!.contains(emoji)) {
-        _emojiCategories[_selectedEmotion]!.remove(emoji);
-      } else {
-        _emojiCategories[_selectedEmotion]!.add(emoji);
+      var currentEmojis = _emojiCategories[_selectedEmotion]!;
+      if (currentEmojis.contains(emoji)) {
+        currentEmojis.remove(emoji);
+      } else if (currentEmojis.length < 5) {
+        currentEmojis.add(emoji);
       }
+    });
+  }
+
+  void _handleCategorySelect(Emotion emotion) {
+    setState(() {
+      _selectedEmotion = emotion;
     });
   }
 
@@ -182,445 +200,846 @@ class _MyPageState extends State<MyPage> {
     }
   }
 
+  // 달력 날짜 계산을 위한 헬퍼 함수들
+  int _getDaysInMonth(int year, int month) {
+    return DateTime(year, month + 1, 0).day;
+  }
+
+  int _getFirstWeekdayOfMonth(int year, int month) {
+    return DateTime(year, month, 1).weekday % 7;
+  }
+
+  List<_CalendarDay> _getCalendarDays(int year, int month) {
+    final List<_CalendarDay> days = [];
+    
+    // 이전 달의 마지막 날짜들
+    final prevMonth = month - 1;
+    final prevYear = prevMonth == 0 ? year - 1 : year;
+    final prevMonthDays = _getDaysInMonth(prevYear, prevMonth == 0 ? 12 : prevMonth);
+    final firstWeekday = _getFirstWeekdayOfMonth(year, month);
+    
+    for (var i = 0; i < firstWeekday; i++) {
+      days.add(_CalendarDay(
+        date: DateTime(prevYear, prevMonth == 0 ? 12 : prevMonth, prevMonthDays - firstWeekday + i + 1),
+        isCurrentMonth: false,
+      ));
+    }
+    
+    // 현재 달의 날짜들
+    final daysInMonth = _getDaysInMonth(year, month);
+    for (var i = 1; i <= daysInMonth; i++) {
+      days.add(_CalendarDay(
+        date: DateTime(year, month, i),
+        isCurrentMonth: true,
+      ));
+    }
+    
+    // 다음 달의 시작 날짜들
+    final nextMonth = month + 1;
+    final nextYear = nextMonth == 13 ? year + 1 : year;
+    final remainingDays = 42 - days.length; // 6주 * 7일 = 42일로 맞추기
+    
+    for (var i = 1; i <= remainingDays; i++) {
+      days.add(_CalendarDay(
+        date: DateTime(nextYear, nextMonth == 13 ? 1 : nextMonth, i),
+        isCurrentMonth: false,
+      ));
+    }
+    
+    return days;
+  }
+
+  // 달력의 top 위치를 계산하는 함수
+  double _getCalendarTopPosition() {
+    final RenderBox? renderBox = _birthdayInputKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox != null) {
+      final position = renderBox.localToGlobal(Offset.zero);
+      final height = renderBox.size.height;
+      return position.dy + height + 4; // 입력 박스 아래 4픽셀 간격
+    }
+    return 0;
+  }
+
+  // 달력의 left 위치를 계산하는 함수
+  double _getCalendarLeftPosition() {
+    final RenderBox? renderBox = _birthdayInputKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox != null) {
+      final position = renderBox.localToGlobal(Offset.zero);
+      return position.dx;
+    }
+    return 0;
+  }
+
+  // 프리미엄 카테고리 여부 확인
+  bool _isPremiumCategory(Emotion emotion) {
+    return emotion != Emotion.shape;
+  }
+
+  // 프리미엄 구독 안내 모달
+  Widget _buildPremiumDialog(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFFF5EFE6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        width: 320,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 닫기 버튼
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  setState(() {
+                    _isPremiumModalOpen = false;
+                  });
+                },
+              ),
+            ),
+            // 팔레트 아이콘
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: Colors.black,
+                  width: 2,
+                ),
+              ),
+              child: const Icon(
+                Icons.palette,
+                size: 32,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // 안내 텍스트
+            const Text(
+              '더 많은 이모티콘을 사용하세요!',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '프리미엄 구독하시면 과일, 동물, 날씨 카테고리의 다양한 이모티콘을 사용할 수 있어요.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            // 가격
+            const Text(
+              '월 9,900원',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFB68D6B),
+              ),
+            ),
+            const Text(
+              '프리미엄 구독',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // 버튼들
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isPremiumModalOpen = false;
+                    });
+                  },
+                  child: const Text(
+                    '나중에',
+                    style: TextStyle(
+                      color: Colors.black54,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO: 프리미엄 구독 처리
+                    setState(() {
+                      _isPremiumModalOpen = false;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFB68D6B),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text('프리미엄 구독하기'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmojiDialog(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFFF5EFE6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        width: 448,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상단 헤더
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '이모티콘 카테고리 설정',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    setState(() {
+                      _isEmojiDialogOpen = false;
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            // 카테고리 버튼들
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // 도형을 첫 번째로 이동
+                _buildCategoryButton(Emotion.shape),
+                _buildCategoryButton(Emotion.fruit),
+                _buildCategoryButton(Emotion.animal),
+                _buildCategoryButton(Emotion.weather),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // 선택된 카테고리 제목
+            Row(
+              children: [
+                Text(
+                  '${_emotionLabels[_selectedEmotion]} 카테고리 (5개)',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (_isPremiumCategory(_selectedEmotion))
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Text(
+                      '프리미엄 전용',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 선택된 이모지들
+            Container(
+              padding: const EdgeInsets.all(12),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (var emoji in _emojiCategories[_selectedEmotion]!)
+                    Text(
+                      emoji,
+                      style: TextStyle(
+                        fontSize: 28,
+                        color: _isPremiumCategory(_selectedEmotion) 
+                          ? Colors.black38
+                          : Colors.black,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 하단 버튼들
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: _resetToDefault,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.black54,
+                  ),
+                  child: const Text('기본값으로 초기화'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_isPremiumCategory(_selectedEmotion)) {
+                      setState(() {
+                        _isEmojiDialogOpen = false;
+                        _isPremiumModalOpen = true;
+                      });
+                    } else {
+                      setState(() {
+                        _isEmojiDialogOpen = false;
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFB68D6B),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text('완료'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 카테고리 버튼 위젯
+  Widget _buildCategoryButton(Emotion emotion) {
+    return TextButton(
+      onPressed: () => _handleCategorySelect(emotion),
+      style: ButtonStyle(
+        backgroundColor: MaterialStateProperty.all(
+          _selectedEmotion == emotion 
+            ? const Color(0xFFB68D6B)
+            : Colors.transparent,
+        ),
+        padding: MaterialStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+        shape: MaterialStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            _emotionLabels[emotion]!,
+            style: TextStyle(
+              color: _selectedEmotion == emotion ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          if (_isPremiumCategory(emotion))
+            const Padding(
+              padding: EdgeInsets.only(left: 4),
+              child: Icon(
+                Icons.lock,
+                size: 16,
+                color: Colors.black54,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, appState, child) {
         final happinessData = _calculateHappinessData(appState);
         
-        return Container(
+        return Material(
           color: AppColors.background,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Header
-                  Row(
-                    children: [
-                      AppButton(
-                        onPressed: () => appState.handleBackToCalendar(),
-                        variant: ButtonVariant.ghost,
-                        size: ButtonSize.icon,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: AppColors.calendarDateHover,
-                          ),
-                          child: const Icon(Icons.arrow_back, size: 20),
-                        ),
-                      ),
-                      const Expanded(
-                        child: Text(
-                          '마이페이지',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 40),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  Expanded(
-                    child: SingleChildScrollView(
+          child: Stack(  // SafeArea를 Stack으로 감싸기
+            children: [
+              SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 448),
                       child: Column(
                         children: [
-                          // Profile Section
-                          AppCard(
-                            backgroundColor: AppColors.calendarBg,
-                            borderRadius: BorderRadius.circular(24),
-                            padding: const EdgeInsets.all(24),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _userName,
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _formatDate(appState.userBirthday),
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: AppColors.mutedForeground,
-                                        ),
-                                      ),
-                                    ],
+                          // Header
+                          Row(
+                            children: [
+                              AppButton(
+                                onPressed: () => appState.handleBackToCalendar(),
+                                variant: ButtonVariant.ghost,
+                                size: ButtonSize.icon,
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: AppColors.calendarDateHover,
                                   ),
+                                  child: const Icon(Icons.arrow_back, size: 20),
                                 ),
-                                Row(
-                                  children: [
-                                    // Subscription Status
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(20),
-                                        gradient: appState.userSubscription == UserSubscription.premium
-                                            ? const LinearGradient(
-                                                colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
-                                              )
-                                            : null,
-                                        color: appState.userSubscription != UserSubscription.premium
-                                            ? AppColors.muted
-                                            : null,
-                                      ),
-                                      child: Text(
-                                        appState.userSubscription == UserSubscription.premium ? '프리미엄' : '노멀',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: appState.userSubscription == UserSubscription.premium
-                                              ? Colors.white
-                                              : AppColors.mutedForeground,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    AppButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _tempName = _userName;
-                                          _tempBirthday = appState.userBirthday;
-                                          _isProfileDialogOpen = true;
-                                        });
-                                      },
-                                      variant: ButtonVariant.ghost,
-                                      size: ButtonSize.icon,
-                                      child: Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(20),
-                                          color: AppColors.calendarDateHover,
-                                        ),
-                                        child: const Icon(Icons.settings, size: 20),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Mood Data Section
-                          AppCard(
-                            backgroundColor: AppColors.calendarBg,
-                            borderRadius: BorderRadius.circular(24),
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  '이번 달 기분 분석',
+                              ),
+                              const Expanded(
+                                child: Text(
+                                  '마이페이지',
+                                  textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
+                                    color: AppColors.foreground,
                                   ),
                                 ),
-                                const SizedBox(height: 24),
-                                
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '총 일기 수',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: AppColors.mutedForeground,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${happinessData['totalDays']}일',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                
-                                const SizedBox(height: 24),
-                                
-                                // Happiness Gauge
-                                Center(
-                                  child: Column(
-                                    children: [
-                                      SizedBox(
-                                        width: 200,
-                                        height: 120,
-                                        child: CustomPaint(
-                                          painter: HappinessGaugePainter(
-                                            happinessIndex: happinessData['happinessIndex'],
-                                            gaugeAngle: happinessData['gaugeAngle'],
-                                            happinessColor: happinessData['happinessColor'],
-                                            happinessEmoji: happinessData['happinessEmoji'],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Column(
-                                        children: [
-                                          Text(
-                                            '${happinessData['happinessIndex']}%',
-                                            style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
-                                              color: happinessData['happinessColor'],
-                                            ),
-                                          ),
-                                          Text(
-                                            '행복 지수',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: AppColors.mutedForeground,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 40),
+                            ],
                           ),
                           
                           const SizedBox(height: 24),
                           
-                          // Voice Setting
-                          AppCard(
-                            backgroundColor: AppColors.calendarBg,
-                            borderRadius: BorderRadius.circular(24),
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'AI 목소리 음성 기능',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    Switch(
-                                      value: _voiceEnabled,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _voiceEnabled = value;
-                                        });
-                                      },
-                                      activeColor: AppColors.primary,
-                                    ),
-                                  ],
-                                ),
-                                
-                                if (_voiceEnabled) ...[
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        '음성 볼륨',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  // Profile Section
+                                  AppCard(
+                                    backgroundColor: AppColors.calendarBg,
+                                    borderRadius: BorderRadius.circular(24),
+                                    padding: const EdgeInsets.all(24),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                _userName,
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                _formatDate(appState.userBirthday),
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: AppColors.mutedForeground,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        '${_voiceVolume.round()}%',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: AppColors.mutedForeground,
+                                        Row(
+                                          children: [
+                                            // Subscription Status
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(20),
+                                                gradient: appState.userSubscription == UserSubscription.premium
+                                                    ? const LinearGradient(
+                                                        colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                                                      )
+                                                    : null,
+                                                color: appState.userSubscription != UserSubscription.premium
+                                                    ? AppColors.muted
+                                                    : null,
+                                              ),
+                                              child: Text(
+                                                appState.userSubscription == UserSubscription.premium ? '프리미엄' : '노멀',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: appState.userSubscription == UserSubscription.premium
+                                                      ? Colors.white
+                                                      : AppColors.mutedForeground,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            AppButton(
+                                              onPressed: () {
+                                                setState(() {
+                                                  _tempName = _userName;
+                                                  _tempBirthday = appState.userBirthday;
+                                                  _isProfileDialogOpen = true;
+                                                });
+                                              },
+                                              variant: ButtonVariant.ghost,
+                                              size: ButtonSize.icon,
+                                              child: Container(
+                                                width: 40,
+                                                height: 40,
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.circular(20),
+                                                  color: AppColors.calendarDateHover,
+                                                ),
+                                                child: const Icon(Icons.settings, size: 20),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Slider(
-                                    value: _voiceVolume,
-                                    min: 0,
-                                    max: 100,
-                                    divisions: 100,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _voiceVolume = value;
-                                      });
-                                    },
-                                    activeColor: AppColors.primary,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Emoticon Setting
-                          AppCard(
-                            backgroundColor: AppColors.calendarBg,
-                            borderRadius: BorderRadius.circular(24),
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
+                                  
+                                  const SizedBox(height: 24),
+                                  
+                                  // Mood Data Section
+                                  AppCard(
+                                    backgroundColor: AppColors.calendarBg,
+                                    borderRadius: BorderRadius.circular(24),
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         const Text(
-                                          '이모티콘 표시',
+                                          '이번 달 기분 분석',
                                           style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '캘린더에 감정 이모티콘을 표시합니다',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: AppColors.mutedForeground,
+                                        const SizedBox(height: 24),
+                                        
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              '총 일기 수',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: AppColors.mutedForeground,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${happinessData['totalDays']}일',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        
+                                        const SizedBox(height: 24),
+                                        
+                                        // Happiness Gauge
+                                        Center(
+                                          child: Column(
+                                            children: [
+                                              SizedBox(
+                                                width: 200,
+                                                height: 120,
+                                                child: CustomPaint(
+                                                  painter: HappinessGaugePainter(
+                                                    happinessIndex: happinessData['happinessIndex'],
+                                                    gaugeAngle: happinessData['gaugeAngle'],
+                                                    happinessColor: happinessData['happinessColor'],
+                                                    happinessEmoji: happinessData['happinessEmoji'],
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 16),
+                                              Column(
+                                                children: [
+                                                  Text(
+                                                    '${happinessData['happinessIndex']}%',
+                                                    style: TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: happinessData['happinessColor'],
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '행복 지수',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: AppColors.mutedForeground,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
                                     ),
-                                    Switch(
-                                      value: appState.emoticonEnabled,
-                                      onChanged: appState.setEmoticonEnabled,
-                                      activeColor: AppColors.primary,
-                                    ),
-                                  ],
-                                ),
-                                
-                                if (appState.emoticonEnabled) ...[
-                                  const SizedBox(height: 16),
-                                  Container(
-                                    width: double.infinity,
-                                    height: 1,
-                                    color: AppColors.border,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        '이모티콘 카테고리 관리',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      AppButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _isEmojiDialogOpen = true;
-                                          });
-                                        },
-                                        variant: ButtonVariant.outline,
-                                        child: const Text('편집'),
-                                      ),
-                                    ],
                                   ),
                                   
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 24),
                                   
-                                  // Quick Preview
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '현재 설정된 카테고리',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: AppColors.mutedForeground,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.muted.withOpacity(0.5),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Row(
+                                  // Voice Setting
+                                  AppCard(
+                                    backgroundColor: AppColors.calendarBg,
+                                    borderRadius: BorderRadius.circular(24),
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      children: [
+                                        Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  _emotionLabels[_selectedEmotion]!,
-                                                  style: const TextStyle(fontSize: 12),
-                                                ),
-                                                if (appState.userSubscription != UserSubscription.premium && 
-                                                    _selectedEmotion != Emotion.shape)
-                                                  const Text('🔒', style: TextStyle(fontSize: 12)),
-                                              ],
+                                            const Text(
+                                              'AI 목소리 음성 기능',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                              ),
                                             ),
-                                            Row(
-                                              children: [
-                                                ...(_emojiCategories[_selectedEmotion]!.take(3).map((emoji) => 
-                                                  Text(emoji, style: const TextStyle(fontSize: 12)))),
-                                                if (_emojiCategories[_selectedEmotion]!.length > 3)
-                                                  Text(
-                                                    '+${_emojiCategories[_selectedEmotion]!.length - 3}',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: AppColors.mutedForeground,
-                                                    ),
-                                                  ),
-                                              ],
+                                            Switch(
+                                              value: _voiceEnabled,
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  _voiceEnabled = value;
+                                                });
+                                              },
+                                              activeColor: AppColors.primary,
                                             ),
                                           ],
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 32),
-                          
-                          // Logout Button
-                          AppCard(
-                            backgroundColor: AppColors.calendarBg,
-                            borderRadius: BorderRadius.circular(24),
-                            padding: const EdgeInsets.all(16),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: AppButton(
-                                onPressed: appState.handleLogout,
-                                variant: ButtonVariant.primary,
-                                child: const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  child: Text(
-                                    '로그아웃',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
+                                        
+                                        if (_voiceEnabled) ...[
+                                          const SizedBox(height: 16),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text(
+                                                '음성 볼륨',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              Text(
+                                                '${_voiceVolume.round()}%',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: AppColors.mutedForeground,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Slider(
+                                            value: _voiceVolume,
+                                            min: 0,
+                                            max: 100,
+                                            divisions: 100,
+                                            onChanged: (value) {
+                                              setState(() {
+                                                _voiceVolume = value;
+                                              });
+                                            },
+                                            activeColor: AppColors.primary,
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
-                                ),
+                                  
+                                  const SizedBox(height: 24),
+                                  
+                                  // Emoticon Setting
+                                  AppCard(
+                                    backgroundColor: AppColors.calendarBg,
+                                    borderRadius: BorderRadius.circular(24),
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                const Text(
+                                                  '이모티콘 표시',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '캘린더에 감정 이모티콘을 표시합니다',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: AppColors.mutedForeground,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Switch(
+                                              value: appState.emoticonEnabled,
+                                              onChanged: appState.setEmoticonEnabled,
+                                              activeColor: AppColors.primary,
+                                            ),
+                                          ],
+                                        ),
+                                        
+                                        if (appState.emoticonEnabled) ...[
+                                          const SizedBox(height: 16),
+                                          Container(
+                                            width: double.infinity,
+                                            height: 1,
+                                            color: AppColors.border,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text(
+                                                '이모티콘 카테고리 관리',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              AppButton(
+                                                onPressed: () {
+                                                  setState(() {
+                                                    _isEmojiDialogOpen = true;
+                                                  });
+                                                },
+                                                variant: ButtonVariant.outline,
+                                                child: const Text('편집'),
+                                              ),
+                                            ],
+                                          ),
+                                          
+                                          const SizedBox(height: 16),
+                                          
+                                          // Quick Preview
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '현재 설정된 카테고리',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: AppColors.mutedForeground,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Container(
+                                                padding: const EdgeInsets.all(12),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.muted.withOpacity(0.5),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Text(
+                                                          _emotionLabels[_selectedEmotion]!,
+                                                          style: const TextStyle(fontSize: 12),
+                                                        ),
+                                                        if (appState.userSubscription != UserSubscription.premium && 
+                                                            _selectedEmotion != Emotion.shape)
+                                                          const Text('🔒', style: TextStyle(fontSize: 12)),
+                                                      ],
+                                                    ),
+                                                    Row(
+                                                      children: [
+                                                        ...(_emojiCategories[_selectedEmotion]!.take(3).map((emoji) => 
+                                                          Text(emoji, style: const TextStyle(fontSize: 12)))),
+                                                        if (_emojiCategories[_selectedEmotion]!.length > 3)
+                                                          Text(
+                                                            '+${_emojiCategories[_selectedEmotion]!.length - 3}',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              color: AppColors.mutedForeground,
+                                                            ),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  
+                                  const SizedBox(height: 32),
+                                  
+                                  // Logout Button
+                                  AppCard(
+                                    backgroundColor: AppColors.calendarBg,
+                                    borderRadius: BorderRadius.circular(24),
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      children: [
+                                        InkWell(
+                                          onTap: appState.handleLogout,
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.symmetric(vertical: 16),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFA97B56),  // 진한 갈색으로 변경
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: const Text(
+                                              '로그아웃',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.foreground,  // 텍스트 색상을 흰색으로 변경
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -628,12 +1047,378 @@ class _MyPageState extends State<MyPage> {
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+              // 프로필 설정 모달
+              if (_isProfileDialogOpen)
+                Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: Center(
+                    child: Container(
+                      margin: const EdgeInsets.all(16),
+                      constraints: const BoxConstraints(maxWidth: 448),
+                      child: Material(
+                        color: AppColors.calendarBg,
+                        borderRadius: BorderRadius.circular(24),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 헤더
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    '프로필 설정',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () => setState(() {
+                                      _isProfileDialogOpen = false;
+                                    }),
+                                    icon: const Icon(Icons.close),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              // 이름 입력
+                              const Text(
+                                '이름',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: TextEditingController(),  // 초기값 제거
+                                onChanged: (value) => _tempName = value,
+                                decoration: InputDecoration(
+                                  hintText: '이름을 입력하세요.',
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 16,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(color: AppColors.border),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(color: AppColors.border),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(color: AppColors.border),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              // 생일 선택
+                              const Text(
+                                '생일',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              // 날짜 표시 박스
+                              InkWell(
+                                key: _birthdayInputKey, // 위치 추적을 위한 키 추가
+                                onTap: () {
+                                  setState(() {
+                                    _isCalendarVisible = !_isCalendarVisible;
+                                  });
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: AppColors.border),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today, size: 16),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _tempBirthday != null 
+                                          ? '${_tempBirthday!.year}년 ${_tempBirthday!.month}월 ${_tempBirthday!.day}일'
+                                          : '생일을 선택하세요.',
+                                        style: TextStyle(
+                                          color: _tempBirthday == null
+                                              ? AppColors.mutedForeground
+                                              : AppColors.foreground,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              // 버튼
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  AppButton(
+                                    onPressed: () => _handleCancelProfile(appState),
+                                    variant: ButtonVariant.ghost,
+                                    child: const Text('취소'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  AppButton(
+                                    onPressed: () => _handleSaveProfile(appState),
+                                    variant: ButtonVariant.primary,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      child: const Text('저장'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              // 달력 팝오버
+              if (_isCalendarVisible && _isProfileDialogOpen)
+                Positioned(
+                  top: _getCalendarTopPosition(),
+                  left: _getCalendarLeftPosition(),
+                  child: Material(
+                    elevation: 8,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 320,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 월 선택 헤더
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.chevron_left),
+                                onPressed: () {
+                                  setState(() {
+                                    _currentCalendarDate = DateTime(
+                                      _currentCalendarDate.year,
+                                      _currentCalendarDate.month - 1,
+                                    );
+                                  });
+                                },
+                              ),
+                              Text(
+                                '${_currentCalendarDate.year}년 ${_currentCalendarDate.month}월',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.chevron_right),
+                                onPressed: () {
+                                  setState(() {
+                                    _currentCalendarDate = DateTime(
+                                      _currentCalendarDate.year,
+                                      _currentCalendarDate.month + 1,
+                                    );
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // 요일 헤더
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: const [
+                              Text('일', style: TextStyle(fontSize: 12, color: Colors.red)),
+                              Text('월', style: TextStyle(fontSize: 12)),
+                              Text('화', style: TextStyle(fontSize: 12)),
+                              Text('수', style: TextStyle(fontSize: 12)),
+                              Text('목', style: TextStyle(fontSize: 12)),
+                              Text('금', style: TextStyle(fontSize: 12)),
+                              Text('토', style: TextStyle(fontSize: 12, color: Colors.blue)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          // 날짜 그리드
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 7,
+                              childAspectRatio: 1,
+                              mainAxisSpacing: 4,
+                              crossAxisSpacing: 4,
+                            ),
+                            itemCount: 42,
+                            itemBuilder: (context, index) {
+                              final days = _getCalendarDays(_currentCalendarDate.year, _currentCalendarDate.month);
+                              final day = days[index];
+                              final isSelected = _tempBirthday != null &&
+                                  day.date.year == _tempBirthday!.year &&
+                                  day.date.month == _tempBirthday!.month &&
+                                  day.date.day == _tempBirthday!.day;
+                              final isWeekend = day.date.weekday == DateTime.saturday || 
+                                              day.date.weekday == DateTime.sunday;
+                              
+                              return TextButton(
+                                onPressed: () {
+                                  if (day.isCurrentMonth) {
+                                    setState(() {
+                                      _tempBirthday = day.date;
+                                    });
+                                  } else {
+                                    setState(() {
+                                      _currentCalendarDate = DateTime(day.date.year, day.date.month, 1);
+                                    });
+                                  }
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  backgroundColor: isSelected 
+                                    ? AppColors.primary.withOpacity(0.1)
+                                    : day.isCurrentMonth ? null : AppColors.muted.withOpacity(0.1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${day.date.day}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      color: !day.isCurrentMonth 
+                                        ? AppColors.mutedForeground.withOpacity(0.5)
+                                        : isSelected
+                                          ? AppColors.primary
+                                          : isWeekend
+                                            ? day.date.weekday == DateTime.sunday ? Colors.red : Colors.blue
+                                            : AppColors.foreground,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              // 이모티콘 설정 모달
+              if (_isEmojiDialogOpen)
+                _buildEmojiDialog(context),
+              // 프리미엄 구독 모달
+              if (_isPremiumModalOpen)
+                _buildPremiumDialog(context),
+            ],
           ),
         );
       },
+    );
+  }
+
+  // 카테고리 탭 위젯
+  Widget _buildCategoryTab(Emotion emotion, String label, AppState appState) {
+    final bool isLocked = appState.userSubscription != UserSubscription.premium && 
+                         emotion != Emotion.shape;
+    
+    return InkWell(
+      onTap: isLocked ? null : () {
+        setState(() {
+          _selectedEmotion = emotion;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: _selectedEmotion == emotion 
+            ? AppColors.primary 
+            : AppColors.muted.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: _selectedEmotion == emotion 
+                  ? Colors.white 
+                  : AppColors.mutedForeground,
+                fontWeight: _selectedEmotion == emotion 
+                  ? FontWeight.bold 
+                  : FontWeight.normal,
+              ),
+            ),
+            if (isLocked) ...[
+              const SizedBox(width: 4),
+              const Text('🔒', style: TextStyle(fontSize: 12)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 이모티콘 아이템 위젯
+  Widget _buildEmojiItem(String emoji) {
+    final isSelected = _emojiCategories[_selectedEmotion]!.contains(emoji);
+    
+    return InkWell(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            _emojiCategories[_selectedEmotion]!.remove(emoji);
+          } else {
+            if (_emojiCategories[_selectedEmotion]!.length < 5) { // 최대 5개까지만 선택 가능
+              _emojiCategories[_selectedEmotion]!.add(emoji);
+            }
+          }
+        });
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isSelected 
+            ? AppColors.primary.withOpacity(0.1) 
+            : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected 
+              ? AppColors.primary 
+              : Colors.transparent,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            emoji,
+            style: const TextStyle(fontSize: 20),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -739,4 +1524,15 @@ class HappinessGaugePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+} 
+
+// 달력 날짜를 표현하는 클래스
+class _CalendarDay {
+  final DateTime date;
+  final bool isCurrentMonth;
+
+  _CalendarDay({
+    required this.date,
+    required this.isCurrentMonth,
+  });
 } 
