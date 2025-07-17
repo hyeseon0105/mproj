@@ -5,6 +5,8 @@ import '../theme.dart';
 import '../ui/button.dart';
 import '../ui/card.dart';
 import '../ui/input.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -20,14 +22,67 @@ class _AuthPageState extends State<AuthPage> {
   String password = '';
   String confirmPassword = '';
   String name = '';
+  String errorMessage = '';
 
   final _formKey = GlobalKey<FormState>();
 
+  Future<void> handleLogin() async {
+    setState(() { errorMessage = ''; });
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8000/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        // JWT 토큰과 사용자 정보 저장 (AppState에 저장)
+        final appState = Provider.of<AppState>(context, listen: false);
+        appState.handleLogin(); // 실제로는 토큰/유저정보도 저장 필요
+        // TODO: 필요시 appState에 토큰/유저정보 저장 로직 추가
+      } else {
+        final data = jsonDecode(response.body);
+        setState(() { errorMessage = data['detail'] ?? '로그인 실패'; });
+      }
+    } catch (e) {
+      setState(() { errorMessage = '서버 연결 실패'; });
+    }
+  }
+
+  Future<void> handleRegister() async {
+    setState(() { errorMessage = ''; });
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8000/api/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': name,
+          'email': email,
+          'password': password,
+        }),
+      );
+      if (response.statusCode == 200) {
+        // 회원가입 성공 시 자동 로그인 처리
+        await handleLogin();
+      } else {
+        final data = jsonDecode(response.body);
+        setState(() { errorMessage = data['detail'] ?? '회원가입 실패'; });
+      }
+    } catch (e) {
+      setState(() { errorMessage = '서버 연결 실패'; });
+    }
+  }
+
   void handleSubmit() {
     if (_formKey.currentState!.validate()) {
-      // 실제 인증 로직 없이 바로 로그인 처리
-      final appState = Provider.of<AppState>(context, listen: false);
-      appState.handleLogin();
+      if (isLogin) {
+        handleLogin();
+      } else {
+        handleRegister();
+      }
     }
   }
 
@@ -46,19 +101,14 @@ class _AuthPageState extends State<AuthPage> {
                 // Logo/Title
                 Column(
                   children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Background Logo (옅게 표시)
-                        Opacity(
-                          opacity: 0.5,
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            height: 280,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      '하루그램',
+                      style: TextStyle(
+                        fontSize: 30.0, // text-3xl
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.foreground,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8), // mb-2
                     Text(
@@ -369,6 +419,14 @@ class _AuthPageState extends State<AuthPage> {
                           ],
                         ),
                       ),
+                      if (errorMessage.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            errorMessage,
+                            style: TextStyle(color: Colors.red, fontSize: 14),
+                          ),
+                        ),
                     ],
                   ),
                 ),
