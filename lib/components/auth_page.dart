@@ -173,7 +173,7 @@ class _AuthPageState extends State<AuthPage> {
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(6.0),
-                                        borderSide: BorderSide(color: AppColors.ring, width: 2.0),
+                                        borderSide: BorderSide(color: AppColors.border, width: 2.0),
                                       ),
                                     ),
                                     validator: (value) {
@@ -217,7 +217,7 @@ class _AuthPageState extends State<AuthPage> {
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(6.0),
-                                      borderSide: BorderSide(color: AppColors.ring, width: 2.0),
+                                      borderSide: BorderSide(color: AppColors.border, width: 2.0),
                                     ),
                                   ),
                                   validator: (value) {
@@ -246,6 +246,7 @@ class _AuthPageState extends State<AuthPage> {
                                 TextFormField(
                                   onChanged: (value) => password = value,
                                   obscureText: !showPassword,
+                                  onFieldSubmitted: (_) => handleSubmit(),
                                   decoration: InputDecoration(
                                     hintText: '비밀번호를 입력하세요',
                                     fillColor: AppColors.calendarDateBg,
@@ -268,7 +269,7 @@ class _AuthPageState extends State<AuthPage> {
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(6.0),
-                                      borderSide: BorderSide(color: AppColors.ring, width: 2.0),
+                                      borderSide: BorderSide(color: AppColors.border, width: 2.0),
                                     ),
                                   ),
                                   validator: (value) {
@@ -298,6 +299,7 @@ class _AuthPageState extends State<AuthPage> {
                                   TextFormField(
                                     onChanged: (value) => confirmPassword = value,
                                     obscureText: !showPassword,
+                                    onFieldSubmitted: (_) => handleSubmit(),
                                     decoration: InputDecoration(
                                       hintText: '비밀번호를 다시 입력하세요',
                                       fillColor: AppColors.calendarDateBg,
@@ -320,7 +322,7 @@ class _AuthPageState extends State<AuthPage> {
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(6.0),
-                                        borderSide: BorderSide(color: AppColors.ring, width: 2.0),
+                                        borderSide: BorderSide(color: AppColors.border, width: 2.0),
                                       ),
                                     ),
                                     validator: (value) {
