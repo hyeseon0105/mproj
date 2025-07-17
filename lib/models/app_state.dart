@@ -48,35 +48,35 @@ class AppState extends ChangeNotifier {
   bool _emoticonEnabled = true;
   
   final Map<String, EmotionData> _emotionData = {
-    '2024-2-1': EmotionData(emotion: Emotion.fruit, emoji: '🍎'),
-    '2024-2-2': EmotionData(emotion: Emotion.animal, emoji: '🐶'),
-    '2024-2-3': EmotionData(emotion: Emotion.shape, emoji: '⭐'),
-    '2024-2-4': EmotionData(emotion: Emotion.weather, emoji: '☀️'),
-    '2024-2-5': EmotionData(emotion: Emotion.fruit, emoji: '🍊'),
-    '2024-2-6': EmotionData(emotion: Emotion.animal, emoji: '🐱'),
-    '2024-2-7': EmotionData(emotion: Emotion.shape, emoji: '🔶'),
-    '2024-2-8': EmotionData(emotion: Emotion.weather, emoji: '🌧️'),
-    '2024-2-9': EmotionData(emotion: Emotion.fruit, emoji: '🍌'),
-    '2024-2-10': EmotionData(emotion: Emotion.animal, emoji: '🐰'),
-    '2024-2-11': EmotionData(emotion: Emotion.shape, emoji: '🔷'),
-    '2024-2-12': EmotionData(emotion: Emotion.weather, emoji: '⛈️'),
-    '2024-2-13': EmotionData(emotion: Emotion.fruit, emoji: '🍇'),
-    '2024-2-14': EmotionData(emotion: Emotion.animal, emoji: '🐸'),
-    '2024-2-15': EmotionData(emotion: Emotion.shape, emoji: '⚫'),
-    '2024-2-16': EmotionData(emotion: Emotion.weather, emoji: '🌈'),
-    '2024-2-17': EmotionData(emotion: Emotion.fruit, emoji: '🍓'),
-    '2024-2-18': EmotionData(emotion: Emotion.animal, emoji: '🐼'),
-    '2024-2-19': EmotionData(emotion: Emotion.shape, emoji: '🔺'),
-    '2024-2-20': EmotionData(emotion: Emotion.weather, emoji: '❄️'),
-    '2024-2-21': EmotionData(emotion: Emotion.fruit, emoji: '🥝'),
-    '2024-2-22': EmotionData(emotion: Emotion.animal, emoji: '🦊'),
-    '2024-2-23': EmotionData(emotion: Emotion.shape, emoji: '🌟'),
-    '2024-2-24': EmotionData(emotion: Emotion.weather, emoji: '🌤️'),
-    '2024-2-25': EmotionData(emotion: Emotion.fruit, emoji: '🍑'),
-    '2024-2-26': EmotionData(emotion: Emotion.animal, emoji: '🐻'),
-    '2024-2-27': EmotionData(emotion: Emotion.shape, emoji: '✨'),
-    '2024-2-28': EmotionData(emotion: Emotion.weather, emoji: '⛅'),
-    '2024-2-29': EmotionData(emotion: Emotion.fruit, emoji: '🥭'),
+    '2024-02-01': EmotionData(emotion: Emotion.fruit, emoji: '🍎'),
+    '2024-02-02': EmotionData(emotion: Emotion.animal, emoji: '🐶'),
+    '2024-02-03': EmotionData(emotion: Emotion.shape, emoji: '⭐'),
+    '2024-02-04': EmotionData(emotion: Emotion.weather, emoji: '☀️'),
+    '2024-02-05': EmotionData(emotion: Emotion.fruit, emoji: '🍊'),
+    '2024-02-06': EmotionData(emotion: Emotion.animal, emoji: '🐱'),
+    '2024-02-07': EmotionData(emotion: Emotion.shape, emoji: '🔶'),
+    '2024-02-08': EmotionData(emotion: Emotion.weather, emoji: '🌧️'),
+    '2024-02-09': EmotionData(emotion: Emotion.fruit, emoji: '🍌'),
+    '2024-02-10': EmotionData(emotion: Emotion.animal, emoji: '🐰'),
+    '2024-02-11': EmotionData(emotion: Emotion.shape, emoji: '🔷'),
+    '2024-02-12': EmotionData(emotion: Emotion.weather, emoji: '⛈️'),
+    '2024-02-13': EmotionData(emotion: Emotion.fruit, emoji: '🍇'),
+    '2024-02-14': EmotionData(emotion: Emotion.animal, emoji: '🐸'),
+    '2024-02-15': EmotionData(emotion: Emotion.shape, emoji: '⚫'),
+    '2024-02-16': EmotionData(emotion: Emotion.weather, emoji: '🌈'),
+    '2024-02-17': EmotionData(emotion: Emotion.fruit, emoji: '🍓'),
+    '2024-02-18': EmotionData(emotion: Emotion.animal, emoji: '🐼'),
+    '2024-02-19': EmotionData(emotion: Emotion.shape, emoji: '🔺'),
+    '2024-02-20': EmotionData(emotion: Emotion.weather, emoji: '❄️'),
+    '2024-02-21': EmotionData(emotion: Emotion.fruit, emoji: '🥝'),
+    '2024-02-22': EmotionData(emotion: Emotion.animal, emoji: '🦊'),
+    '2024-02-23': EmotionData(emotion: Emotion.shape, emoji: '🌟'),
+    '2024-02-24': EmotionData(emotion: Emotion.weather, emoji: '🌤️'),
+    '2024-02-25': EmotionData(emotion: Emotion.fruit, emoji: '🍑'),
+    '2024-02-26': EmotionData(emotion: Emotion.animal, emoji: '🐻'),
+    '2024-02-27': EmotionData(emotion: Emotion.shape, emoji: '✨'),
+    '2024-02-28': EmotionData(emotion: Emotion.weather, emoji: '⛅'),
+    '2024-02-29': EmotionData(emotion: Emotion.fruit, emoji: '🥭'),
   };
 
   static const Map<Emotion, String> emotionEmojis = {
@@ -148,8 +148,11 @@ class AppState extends ChangeNotifier {
   }
 
   void handleDateSelect(String date) {
+    print('AppState.handleDateSelect called: $date'); // 디버깅용 로그
     setSelectedDate(date);
+    print('Selected date set to: $date'); // 디버깅용 로그
     setCurrentView(CurrentView.entry);
+    print('Current view set to: entry'); // 디버깅용 로그
   }
 
   void handleBackToCalendar() {

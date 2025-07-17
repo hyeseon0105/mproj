@@ -74,9 +74,9 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     final random = Random();
     
     // Add some sample entries for the current month
-    for (int day = 1; day <= (daysInCurrentMonth < 10 ? daysInCurrentMonth : 10); day++) {
+    for (int day = 1; day <= min(daysInCurrentMonth, 10); day++) {
       final randomIndex = random.nextInt(emotions.length);
-      sampleData['$year-$month-$day'] = EmotionData(
+      sampleData['$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}'] = EmotionData(
         emotion: emotions[randomIndex],
         emoji: emojis[randomIndex],
       );
@@ -96,13 +96,19 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   }
 
   String _getDateKey(int day) {
-    return '${currentDate.year}-${currentDate.month}-$day';
+    return '${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
   }
 
   void _handleDateClick(int day) {
     final dateKey = _getDateKey(day);
+    print('Calendar date clicked: $dateKey');
+    
     if (widget.onDateSelect != null) {
       widget.onDateSelect!(dateKey);
+    } else {
+      // Provider를 사용한 fallback
+      final appState = Provider.of<AppState>(context, listen: false);
+      appState.handleDateSelect(dateKey);
     }
   }
 
@@ -152,19 +158,22 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     final month = currentDate.month;
     final daysInMonth = DateTime(year, month + 1, 0).day;
     final firstDayOfMonth = DateTime(year, month, 1).weekday % 7;
-    
+
     final days = <Widget>[];
-    
+
     // Empty cells for days before the first day of the month
     for (int i = 0; i < firstDayOfMonth; i++) {
       days.add(const SizedBox(height: 64));
     }
-    
+
     // Days of the month
     for (int day = 1; day <= daysInMonth; day++) {
       final dateKey = _getDateKey(day);
       final dayData = emotionData[dateKey];
-      
+      final isToday = DateTime.now().year == year && 
+                     DateTime.now().month == month && 
+                     DateTime.now().day == day;
+
       days.add(
         SizedBox(
           height: 64,
@@ -182,6 +191,29 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                       hoverColor: AppColors.calendarDateHover,
                       child: Stack(
                         children: [
+                          // 오늘 날짜 표시
+                          if (isToday)
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: AppColors.primary,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                          // 감정 데이터가 있을 때 배경색
+                          if (dayData != null)
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: emotionColors[dayData.emotion]?.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
                           // 숫자 위치 조정
                           Positioned.fill(
                             child: Padding(
@@ -193,7 +225,10 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                                   day.toString(),
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: AppColors.mutedForeground,
+                                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                    color: isToday 
+                                      ? AppColors.primary
+                                      : AppColors.mutedForeground,
                                   ),
                                 ),
                               ),
@@ -224,7 +259,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
         ),
       );
     }
-    
+
     return days;
   }
 
@@ -249,7 +284,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -280,11 +315,11 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-                             child: AppButton(
-                 onPressed: _handlePremiumSubscription,
-                 text: '프리미엄 구독하기',
-                 variant: ButtonVariant.primary,
-               ),
+              child: AppButton(
+                onPressed: _handlePremiumSubscription,
+                text: '프리미엄 구독하기',
+                variant: ButtonVariant.primary,
+              ),
             ),
           ],
         ),
@@ -305,7 +340,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primaryGradientStart.withOpacity(0.8),
+                    AppColors.primaryGradientStart.withValues(alpha: 0.8),
                     AppColors.primaryGradientEnd,
                   ],
                   begin: Alignment.topLeft,
@@ -314,7 +349,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -345,11 +380,11 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-                             child: AppButton(
-                 onPressed: widget.onGoToMyPage,
-                 text: '마이페이지에서 생년월일 설정하기',
-                 variant: ButtonVariant.outline,
-               ),
+              child: AppButton(
+                onPressed: widget.onGoToMyPage,
+                text: '마이페이지에서 생년월일 설정하기',
+                variant: ButtonVariant.outline,
+              ),
             ),
           ],
         ),
@@ -373,7 +408,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primaryGradientStart.withOpacity(0.8),
+                  AppColors.primaryGradientStart.withValues(alpha: 0.8),
                   AppColors.primaryGradientEnd,
                 ],
                 begin: Alignment.topLeft,
@@ -382,7 +417,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -416,17 +451,17 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primaryGradientStart.withOpacity(0.1),
-                  AppColors.primaryGradientEnd.withOpacity(0.2),
+                  AppColors.primaryGradientStart.withValues(alpha: 0.1),
+                  AppColors.primaryGradientEnd.withValues(alpha: 0.2),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: AppColors.primaryGradientStart.withOpacity(0.3),
+                color: AppColors.primaryGradientStart.withValues(alpha: 0.3),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 1),
                 ),

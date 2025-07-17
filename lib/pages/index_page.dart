@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_state.dart';
 import '../components/auth_page.dart';
-import '../components/diary_calendar.dart';
-import '../components/diary_entry.dart';
+import '../components/diary_calendar.dart' as diary_calendar_lib;
+import '../components/diary_entry.dart' as diary_entry_lib;
 import '../components/my_page.dart';
 
 class IndexPage extends StatelessWidget {
@@ -12,7 +12,7 @@ class IndexPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(
-      builder: (BuildContext context, AppState appState, Widget? child) {
+      builder: (context, appState, child) {
         // Show auth page if not authenticated
         if (!appState.isAuthenticated) {
           return const AuthPage();
@@ -22,7 +22,7 @@ class IndexPage extends StatelessWidget {
         switch (appState.currentView) {
           case CurrentView.entry:
             final existingEntry = appState.emotionData[appState.selectedDate];
-            return DiaryEntry(
+            return diary_entry_lib.DiaryEntry(
               selectedDate: appState.selectedDate,
               existingEntry: existingEntry,
               onBack: () => appState.handleBackToCalendar(),
@@ -36,7 +36,22 @@ class IndexPage extends StatelessWidget {
           
           case CurrentView.calendar:
           default:
-            return const DiaryCalendar();
+            return Consumer<AppState>(
+              builder: (context, calendarAppState, child) {
+                return diary_calendar_lib.DiaryCalendar(
+                  onDateSelect: (dateKey) {
+                    print('DiaryCalendar onDateSelect called: $dateKey'); // 디버깅용 로그
+                    calendarAppState.handleDateSelect(dateKey);
+                  },
+                  emotionData: calendarAppState.emotionData,
+                  onSettingsClick: () => calendarAppState.handleSettingsClick(),
+                  emoticonEnabled: calendarAppState.emoticonEnabled,
+                  userSubscription: calendarAppState.userSubscription == UserSubscription.premium ? 'premium' : 'normal',
+                  userBirthday: calendarAppState.userBirthday,
+                  onGoToMyPage: () => calendarAppState.setCurrentView(CurrentView.mypage),
+                );
+              },
+            );
         }
       },
     );
