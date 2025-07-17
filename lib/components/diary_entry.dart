@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 import '../models/app_state.dart';
 import '../theme.dart';
 import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
+import 'dart:html' as html; // 웹 이미지 업로드용 추가
 
 typedef SaveDiaryCallback = void Function(String entry, Emotion emotion, List<String>? images);
 
@@ -43,6 +45,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   bool _isRecording = false;
   int _recordingTime = 0;
   String _recognizedText = '';
+  bool _hasText = false; // 텍스트 입력 여부를 추적하는 변수 추가
   
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
@@ -74,6 +77,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     _isSaved = widget.existingEntry?.entry != null;
     _currentEmoji = widget.existingEntry?.emoji ?? '';
     _uploadedImages = List.from(widget.existingEntry?.images ?? []);
+    _hasText = _entryController.text.trim().isNotEmpty; // 초기 텍스트 상태 설정
 
     _fadeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 500),
@@ -135,7 +139,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       ],
       Emotion.animal: [
         "동물들과 함께한 특별한 하루였나 봐요! 작은 생명들과의 교감은 정말 소중한 경험이에요 🐶",
-        "귀여운 동물들처럼 순수하고 따뜻한 마음이 느껴져요! 이런 순간들이 마음을 치유해주죠 🐱",
+        "귀여운 동물들처럼 순수하고 따뜻한 마음이 느껴져요! 이런 순간들이 마음을 치유해죠 🐱",
         "자연과 생명에 대한 사랑이 전해져요! 동물들과의 만남이 특별한 의미를 준 하루였군요 🐸"
       ],
       Emotion.shape: [
@@ -194,12 +198,42 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     return '${month}월 ${day}일\n$dayName';
   }
 
+  Widget _buildImageWidget(String imagePath) {
+    Widget errorWidget = Container(
+      color: AppColors.muted,
+      child: Icon(
+        Icons.image,
+        color: AppColors.mutedForeground,
+      ),
+    );
+
+    return Image.network(
+      imagePath,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => errorWidget,
+    );
+  }
+
   Future<void> _handleImageUpload() async {
     if (_uploadedImages.length >= 3) return;
 
-    // 시뮬레이션: 더미 이미지 추가
-    setState(() {
-      _uploadedImages.add('https://picsum.photos/200/200?random=${_uploadedImages.length}');
+    // 웹에서만 동작
+    final uploadInput = html.FileUploadInputElement();
+    uploadInput.accept = 'image/*';
+    uploadInput.click();
+
+    uploadInput.onChange.listen((event) {
+      final files = uploadInput.files;
+      if (files != null && files.isNotEmpty) {
+        final file = files[0];
+        final reader = html.FileReader();
+        reader.readAsDataUrl(file);
+        reader.onLoadEnd.listen((event) {
+          setState(() {
+            _uploadedImages.add(reader.result as String);
+          });
+        });
+      }
     });
   }
 
@@ -247,20 +281,29 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     return Positioned.fill(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: List.generate(13, (index) => 
-            Container(
-              height: 32,
-              decoration: const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Color(0x33000000), // muted-foreground/20
-                    width: 1,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 사용 가능한 높이를 라인 높이로 나누어 라인 개수 계산
+            final lineHeight = 32.0;
+            final availableHeight = constraints.maxHeight - 32; // 패딩 고려
+            final lineCount = (availableHeight / lineHeight).floor();
+            
+            return Column(
+              children: List.generate(lineCount, (index) => 
+                Container(
+                  height: lineHeight,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: AppColors.border.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -268,87 +311,106 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: double.infinity),
-      color: AppColors.background,
-      padding: const EdgeInsets.all(16),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 896), // max-w-4xl
-          child: Column(
-            children: [
-              // Header
-              Row(
-                children: [
-                  const SizedBox(width: 216), // ml-[216px]
-                  AppButton(
-                    onPressed: widget.onBack,
-                    variant: ButtonVariant.ghost,
-                    size: ButtonSize.icon,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 896), // max-w-4xl
+            child: Column(
+              children: [
+                // Back Button
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppButton(
+                      onPressed: widget.onBack,
+                      variant: ButtonVariant.ghost,
+                      size: ButtonSize.icon,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: AppColors.calendarDateHover,
+                        ),
+                        child: const Icon(Icons.arrow_back, size: 20),
                       ),
-                      child: const Icon(Icons.arrow_back, size: 20),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Main Content
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 448), // max-w-md
-                  child: AppCard(
-                    backgroundColor: AppColors.calendarBg,
-                    borderRadius: BorderRadius.circular(24),
-                    padding: const EdgeInsets.all(24),
-                    child: Stack(
-                      children: [
-                        Column(
+                ),
+                
+                // Main Content
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: 448, // max-w-md
+                        maxHeight: 800, // 세로 길이 제한 추가
+                      ),
+                      child: AppCard(
+                        backgroundColor: AppColors.calendarBg,
+                        borderRadius: BorderRadius.circular(24),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Voice Recording & Photo Upload Buttons
+                            // Date Display with Voice Recording & Photo Upload Buttons
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Voice Recording Button with Timer
-                                Column(
+                                // Date Display
+                                Row(
                                   children: [
-                                    AppButton(
-                                      onPressed: _handleRecordingToggle,
-                                      variant: ButtonVariant.ghost,
-                                      size: ButtonSize.icon,
-                                      child: Container(
-                                        width: 40,
-                                        height: 40,
+                                    if (_isSaved || widget.existingEntry?.entry != null)
+                                      Container(
+                                        width: 48,
+                                        height: 48,
                                         decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(20),
-                                          color: _isRecording 
-                                              ? Colors.red
-                                              : Colors.red.withOpacity(0.1),
-                                          border: Border.all(
-                                            color: _isRecording 
-                                                ? Colors.red 
-                                                : Colors.red.withOpacity(0.2),
-                                            width: 2,
+                                          color: AppColors.emotionCalm,
+                                          borderRadius: BorderRadius.circular(24),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            _currentEmoji,
+                                            style: const TextStyle(fontSize: 24),
                                           ),
                                         ),
-                                        child: Icon(
-                                          Icons.mic,
-                                          size: 20,
-                                          color: _isRecording ? Colors.white : Colors.red,
-                                        ),
+                                      ),
+                                    if (_isSaved || widget.existingEntry?.entry != null)
+                                      const SizedBox(width: 16),
+                                    // 날짜/요일에 여백 추가
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8.0), // 왼쪽 여백 추가
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(height: 8),
+                                          Text(
+                                            _formatDate(widget.selectedDate),
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.foreground,
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    
-                                    // Recording Timer
+                                  ],
+                                ),
+
+                                // Voice Recording & Photo Upload Buttons
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // 타이머 (녹음 중일 때만)
                                     if (_isRecording) ...[
-                                      const SizedBox(height: 4),
                                       Container(
+                                        margin: const EdgeInsets.only(right: 8),
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
                                           color: Colors.red.withOpacity(0.1),
@@ -365,73 +427,63 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                         ),
                                       ),
                                     ],
-                                  ],
-                                ),
-                                
-                                const SizedBox(width: 8),
-                                
-                                // Photo Upload Button
-                                if (_uploadedImages.length < 3)
-                                  AppButton(
-                                    onPressed: _handleImageUpload,
-                                    variant: ButtonVariant.ghost,
-                                    size: ButtonSize.icon,
-                                    child: Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(20),
-                                        color: AppColors.primary.withOpacity(0.1),
-                                        border: Border.all(
-                                          color: AppColors.primary.withOpacity(0.2),
-                                          width: 2,
+                                    // 마이크 버튼
+                                    AppButton(
+                                      onPressed: _handleRecordingToggle,
+                                      variant: ButtonVariant.ghost,
+                                      size: ButtonSize.icon,
+                                      child: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(20),
+                                          color: _isRecording 
+                                              ? Colors.red
+                                              : Colors.red.withOpacity(0.1),
+                                          border: Border.all(
+                                            color: Colors.red.withOpacity(0.2),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.mic,
+                                            size: 20,
+                                            color: _isRecording ? Colors.white : Colors.red,
+                                          ),
                                         ),
                                       ),
-                                      child: Icon(
-                                        Icons.upload,
-                                        size: 20,
-                                        color: AppColors.primary,
-                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 8),
+                                    // 업로드 버튼
+                                    if (_uploadedImages.length < 3)
+                                      AppButton(
+                                        onPressed: _handleImageUpload,
+                                        variant: ButtonVariant.ghost,
+                                        size: ButtonSize.icon,
+                                        child: Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(20),
+                                            color: AppColors.primary.withOpacity(0.1),
+                                            border: Border.all(
+                                              color: AppColors.primary.withOpacity(0.2),
+                                              width: 2,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.upload,
+                                            size: 20,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ],
                             ),
                             
-                            const SizedBox(height: 24),
-
-                            // Date Display
-                            Row(
-                              children: [
-                                if (_isSaved || widget.existingEntry?.entry != null)
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.emotionCalm,
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        _currentEmoji,
-                                        style: const TextStyle(fontSize: 24),
-                                      ),
-                                    ),
-                                  ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Text(
-                                    _formatDate(widget.selectedDate),
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.foreground,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
                             const SizedBox(height: 24),
 
                             // Uploaded Images Preview
@@ -458,19 +510,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                             color: AppColors.muted,
                                             borderRadius: BorderRadius.circular(12),
                                           ),
-                                          child: Image.network(
-                                            _uploadedImages[index],
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return Container(
-                                                color: AppColors.muted,
-                                                child: Icon(
-                                                  Icons.image,
-                                                  color: AppColors.mutedForeground,
-                                                ),
-                                              );
-                                            },
-                                          ),
+                                          child: _buildImageWidget(_uploadedImages[index]),
                                         ),
                                         Positioned(
                                           top: 4,
@@ -501,99 +541,131 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                             ],
 
                             // Diary Content
-                            SizedBox(
-                              height: 400,
-                              child: Stack(
-                                children: [
-                                  // Notebook lines
-                                  _buildNotebookLines(),
-                                  
-                                  // Writing Area
-                                  Positioned.fill(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: TextField(
-                                        controller: _entryController,
-                                        maxLines: null,
-                                        expands: true,
-                                        textAlignVertical: TextAlignVertical.top,
-                                        style: TextStyle(
-                                          color: AppColors.foreground,
-                                          height: 2.0, // leading-8
-                                          fontSize: 16,
-                                        ),
-                                        decoration: InputDecoration(
-                                          hintText: widget.existingEntry?.entry != null 
-                                              ? "일기를 수정해보세요..." 
-                                              : "오늘의 이야기를 작성해보세요...",
-                                          hintStyle: TextStyle(
-                                            color: AppColors.mutedForeground,
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.calendarBg,
+                                ),
+                                child: Stack(
+                                  children: [
+                                    // Notebook lines
+                                    _buildNotebookLines(),
+                                    
+                                    // Writing Area
+                                    Positioned.fill(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: TextField(
+                                          controller: _entryController,
+                                          maxLines: null,
+                                          expands: true,
+                                          textAlignVertical: TextAlignVertical.top,
+                                          style: TextStyle(
+                                            color: AppColors.foreground,
+                                            height: 2.0,
+                                            fontSize: 16,
                                           ),
-                                          border: InputBorder.none,
-                                          contentPadding: EdgeInsets.zero,
+                                          decoration: InputDecoration(
+                                            hintText: widget.existingEntry?.entry != null 
+                                                ? "일기를 수정해보세요..." 
+                                                : "오늘의 이야기를 작성해보세요...",
+                                            hintStyle: TextStyle(
+                                              color: AppColors.mutedForeground.withOpacity(0.7),
+                                            ),
+                                            border: InputBorder.none,
+                                            enabledBorder: InputBorder.none,
+                                            focusedBorder: InputBorder.none,
+                                            errorBorder: InputBorder.none,
+                                            focusedErrorBorder: InputBorder.none,
+                                            disabledBorder: InputBorder.none,
+                                            contentPadding: EdgeInsets.zero,
+                                            filled: false,
+                                          ),
+                                          onChanged: (text) {
+                                            setState(() {
+                                              _hasText = text.trim().isNotEmpty;
+                                            });
+                                          },
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                             
-                            const SizedBox(height: 48),
+                            const SizedBox(height: 12),
                             
-                            // Save Button
+                            // Save Button with improved disabled style
                             if (!_isSaved)
                               SizedBox(
                                 width: double.infinity,
-                                child: AppButton(
-                                  onPressed: _entryController.text.trim().isNotEmpty && !_isAnalyzing 
-                                      ? _handleSave 
-                                      : null,
-                                  variant: ButtonVariant.primary,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    child: _isAnalyzing
-                                        ? Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              SizedBox(
-                                                width: 16,
-                                                height: 16,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                                    AppColors.primaryForeground,
-                                                  ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: _hasText && !_isAnalyzing 
+                                        ? AppColors.primary
+                                        : AppColors.primary.withOpacity(0.4),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: _hasText && !_isAnalyzing ? _handleSave : null,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        child: Center(
+                                          child: _isAnalyzing
+                                              ? Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    SizedBox(
+                                                      width: 16,
+                                                      height: 16,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                                          AppColors.primaryForeground,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      '감정 분석 중...',
+                                                      style: TextStyle(
+                                                        color: AppColors.primaryForeground,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                )
+                                              : Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.send,
+                                                      size: 16,
+                                                      color: _hasText && !_isAnalyzing 
+                                                          ? AppColors.primaryForeground
+                                                          : AppColors.primaryForeground.withOpacity(0.7),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      widget.existingEntry?.entry != null 
+                                                          ? '일기 수정하기' 
+                                                          : '일기 저장하기',
+                                                      style: TextStyle(
+                                                        color: _hasText && !_isAnalyzing 
+                                                            ? AppColors.primaryForeground
+                                                            : AppColors.primaryForeground.withOpacity(0.7),
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                '감정 분석 중...',
-                                                style: TextStyle(
-                                                  color: AppColors.primaryForeground,
-                                                ),
-                                              ),
-                                            ],
-                                          )
-                                        : Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.send,
-                                                size: 16,
-                                                color: AppColors.primaryForeground,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                widget.existingEntry?.entry != null 
-                                                    ? '일기 수정하기' 
-                                                    : '일기 저장하기',
-                                                style: TextStyle(
-                                                  color: AppColors.primaryForeground,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -602,82 +674,85 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                             if ((_isSaved || widget.existingEntry?.entry != null) && _aiMessage.isNotEmpty)
                               FadeTransition(
                                 opacity: _fadeAnimation,
-                                child: Container(
-                                  margin: const EdgeInsets.only(top: 32),
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: AppColors.primary.withOpacity(0.2),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 8.0), // 왼쪽 여백 추가
+                                  child: Container(
+                                    margin: const EdgeInsets.only(top: 16),
+                                    padding: const EdgeInsets.all(24),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: AppColors.primary.withOpacity(0.2),
+                                      ),
                                     ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary,
-                                              borderRadius: BorderRadius.circular(20),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                '🤖',
-                                                style: TextStyle(
-                                                  fontSize: 18,
-                                                  color: AppColors.primaryForeground,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary,
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  '🤖',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    color: AppColors.primaryForeground,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                '오늘의 한마디',
-                                                style: TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.primary,
+                                            const SizedBox(width: 12),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  '오늘의 한마디',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.primary,
+                                                  ),
                                                 ),
-                                              ),
-                                              Text(
-                                                'AI 친구가 전하는 메시지',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: AppColors.mutedForeground,
+                                                Text(
+                                                  'AI 친구가 전하는 메시지',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppColors.mutedForeground,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        _aiMessage,
-                                        style: TextStyle(
-                                          color: AppColors.foreground,
-                                          height: 1.5,
-                                          fontSize: 14,
+                                              ],
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          _aiMessage,
+                                          style: TextStyle(
+                                            color: AppColors.foreground,
+                                            height: 1.5,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
