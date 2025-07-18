@@ -7,6 +7,8 @@ import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
+
 // dart:html은 웹에서만 사용 가능하므로 조건부 import
 
 typedef SaveDiaryCallback = void Function(String entry, Emotion emotion, List<String>? images);
@@ -222,8 +224,12 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   }
 
   Future<void> _handleImageUpload() async {
-    if (_uploadedImages.length >= 3) return;
-
+    if (_uploadedImages.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('이미지는 최대 3장까지 업로드할 수 있습니다.')),
+      );
+      return;
+    }
     // 웹에서만 동작하므로 조건부 처리
     if (kIsWeb) {
       // 웹에서는 dart:html을 사용할 수 없으므로 이미지 업로드 기능을 비활성화
@@ -470,8 +476,8 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    // 업로드 버튼
-                                    if (_uploadedImages.length < 3)
+                                    // 업로드 버튼 (3장 미만 & 저장 전만 노출)
+                                    if (_uploadedImages.length < 3 && !_isSaved)
                                       AppButton(
                                         onPressed: _handleImageUpload,
                                         variant: ButtonVariant.ghost,
@@ -530,22 +536,25 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                         Positioned(
                                           top: 4,
                                           right: 4,
-                                          child: GestureDetector(
-                                            onTap: () => _handleImageDelete(index),
-                                            child: Container(
-                                              width: 24,
-                                              height: 24,
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withOpacity(0.5),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: const Icon(
-                                                Icons.close,
-                                                size: 12,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
+                                          // 이미지 삭제 버튼 (저장 전만 노출)
+                                          child: !_isSaved
+                                              ? GestureDetector(
+                                                  onTap: () => _handleImageDelete(index),
+                                                  child: Container(
+                                                    width: 24,
+                                                    height: 24,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black.withOpacity(0.5),
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.close,
+                                                      size: 12,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                )
+                                              : const SizedBox.shrink(),
                                         ),
                                       ],
                                     ),
