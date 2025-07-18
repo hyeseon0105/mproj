@@ -193,4 +193,58 @@ def close_connection():
     global client
     if client:
         client.close()
-        print("MongoDB 연결이 종료되었습니다") 
+        print("MongoDB 연결이 종료되었습니다")
+
+class MongoDBClient:
+    """MongoDB 클라이언트 클래스"""
+    
+    def __init__(self):
+        self.client = None
+        self.db = None
+        self._connect()
+    
+    def _connect(self):
+        """MongoDB 연결"""
+        try:
+            print(f"MongoDB 연결 시도: {MONGODB_URL}")
+            self.client = MongoClient(MONGODB_URL, serverSelectionTimeoutMS=5000)
+            
+            # 연결 테스트
+            self.client.admin.command('ping')
+            print("MongoDB 연결 성공!")
+            
+            # 데이터베이스 선택
+            self.db = self.client[DATABASE_NAME]
+            print(f"데이터베이스 선택: {DATABASE_NAME}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"MongoDB 연결 실패: {str(e)}")
+            self.client = None
+            self.db = None
+            return False
+    
+    def check_connection(self) -> bool:
+        """연결 상태 확인"""
+        if self.client is None or self.db is None:
+            return False
+        try:
+            self.client.admin.command('ping')
+            return True
+        except:
+            return False
+    
+    def connect(self) -> bool:
+        """연결 시도"""
+        return self._connect()
+    
+    def get_posts_collection(self):
+        """posts 컬렉션 반환"""
+        if self.db is None:
+            raise Exception("데이터베이스가 초기화되지 않았습니다")
+        return self.db.posts
+
+def get_mongodb() -> MongoDBClient:
+    """MongoDB 클라이언트 인스턴스 반환"""
+    return MongoDBClient() 

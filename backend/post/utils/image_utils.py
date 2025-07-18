@@ -192,4 +192,43 @@ def get_file_size(file_path: str) -> int:
     try:
         return os.path.getsize(file_path)
     except OSError:
-        return 0 
+        return 0
+
+class ImageUtils:
+    """이미지 처리 유틸리티 클래스"""
+    
+    def __init__(self):
+        pass
+    
+    def move_temp_to_permanent(self, temp_filename: str, post_id: str = None) -> str:
+        """임시 파일을 영구 저장소로 이동"""
+        temp_path = os.path.join(TEMP_DIR, temp_filename)
+        permanent_path = os.path.join(IMAGES_DIR, temp_filename)
+        
+        if not os.path.exists(temp_path):
+            raise HTTPException(status_code=404, detail="임시 파일을 찾을 수 없습니다")
+        
+        try:
+            shutil.move(temp_path, permanent_path)
+            return temp_filename  # 파일명만 반환
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"파일 이동 중 오류: {str(e)}")
+    
+    def delete_temp_file(self, filename: str) -> bool:
+        """임시 파일 삭제"""
+        return delete_temp_file(filename)
+    
+    def delete_permanent_file(self, filename: str) -> bool:
+        """영구 파일 삭제"""
+        return delete_permanent_file(filename)
+    
+    def get_file_info(self, filename: str) -> dict:
+        """파일 정보 반환"""
+        file_path = os.path.join(IMAGES_DIR, filename)
+        return {
+            "file_size": get_file_size(file_path),
+            "exists": os.path.exists(file_path)
+        }
+
+# 전역 인스턴스
+image_utils = ImageUtils() 
