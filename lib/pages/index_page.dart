@@ -36,21 +36,17 @@ class IndexPage extends StatelessWidget {
           
           case CurrentView.calendar:
           default:
-            return Consumer<AppState>(
-              builder: (context, calendarAppState, child) {
-                return diary_calendar_lib.DiaryCalendar(
-                  onDateSelect: (dateKey) {
-                    print('DiaryCalendar onDateSelect called: $dateKey'); // 디버깅용 로그
-                    calendarAppState.handleDateSelect(dateKey);
-                  },
-                  emotionData: calendarAppState.emotionData,
-                  onSettingsClick: () => calendarAppState.handleSettingsClick(),
-                  emoticonEnabled: calendarAppState.emoticonEnabled,
-                  userSubscription: calendarAppState.userSubscription == UserSubscription.premium ? 'premium' : 'normal',
-                  userBirthday: calendarAppState.userBirthday,
-                  onGoToMyPage: () => calendarAppState.setCurrentView(CurrentView.mypage),
-                );
+            return diary_calendar_lib.DiaryCalendar(
+              onDateSelect: (dateKey) {
+                print('DiaryCalendar onDateSelect called: $dateKey'); // 디버깅용 로그
+                appState.handleDateSelect(dateKey);
               },
+              emotionData: appState.emotionData,
+              onSettingsClick: () => appState.handleSettingsClick(),
+              emoticonEnabled: appState.emoticonEnabled,
+              userSubscription: appState.userSubscription == UserSubscription.premium ? 'premium' : 'normal',
+              userBirthday: appState.userBirthday,
+              onGoToMyPage: () => appState.setCurrentView(CurrentView.mypage),
             );
         }
       },

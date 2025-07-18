@@ -181,10 +181,15 @@ class _MyPageState extends State<MyPage> {
       var currentEmojis = _emojiCategories[_selectedEmotion]!;
       if (currentEmojis.contains(emoji)) {
         currentEmojis.remove(emoji);
-      } else if (currentEmojis.length < 5) {
+      } else {
         currentEmojis.add(emoji);
       }
+      _emojiCategories[_selectedEmotion] = List.from(currentEmojis);
     });
+
+    // AppState에 사용자 설정 카테고리 저장
+    final appState = Provider.of<AppState>(context, listen: false);
+    appState.updateUserEmoticonCategory(_selectedEmotion, _emojiCategories[_selectedEmotion]!);
   }
 
   void _handleCategorySelect(Emotion emotion) {
@@ -236,9 +241,22 @@ class _MyPageState extends State<MyPage> {
         Emotion.shape: ['⭐', '🔶', '🔷', '⚫', '🔺'],
         Emotion.fruit: ['🍎', '🍊', '🍌', '🍇', '🍓'],
         Emotion.animal: ['🐶', '🐱', '🐰', '🐸', '🐼'],
-        Emotion.weather: ['☀️', '🌧️', '⛈️', '🌈', '❄️']
+        Emotion.weather: ['☀️', '🌧️', '⛈️', '❄️', '🌈'],
       };
+      _selectedEmotion = Emotion.shape;
+      _voiceEnabled = true;
+      _voiceVolume = 50;
+      _userName = '사용자';
+      _tempName = _userName;
+      _tempBirthday = null;
+      _isProfileDialogOpen = false;
+      _isCalendarVisible = false;
+      _currentCalendarDate = DateTime.now();
     });
+
+    // AppState의 사용자 설정 카테고리도 초기화
+    final appState = Provider.of<AppState>(context, listen: false);
+    appState.resetUserEmoticonCategories();
   }
 
   // 행복 지수 계산
@@ -470,16 +488,22 @@ class _MyPageState extends State<MyPage> {
             ),
             const SizedBox(height: 20),
             
-            // 카테고리 버튼들
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // 도형을 첫 번째로 이동
-                _buildCategoryButton(Emotion.shape),
-                _buildCategoryButton(Emotion.fruit),
-                _buildCategoryButton(Emotion.animal),
-                _buildCategoryButton(Emotion.weather),
-              ],
+            // 카테고리 버튼들 - 가로 스크롤
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  const SizedBox(width: 8), // 왼쪽 여백
+                  _buildCategoryButton(Emotion.shape),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton(Emotion.fruit),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton(Emotion.animal),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton(Emotion.weather),
+                  const SizedBox(width: 8), // 오른쪽 여백
+                ],
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -584,42 +608,44 @@ class _MyPageState extends State<MyPage> {
 
   // 카테고리 버튼 위젯
   Widget _buildCategoryButton(Emotion emotion) {
-    return TextButton(
-      onPressed: () => _handleCategorySelect(emotion),
-      style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(
-          _selectedEmotion == emotion 
-            ? const Color(0xFFB68D6B)
-            : Colors.transparent,
-        ),
-        padding: WidgetStateProperty.all(
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        ),
-        shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+    return Container(
+      constraints: const BoxConstraints(minWidth: 80), // 최소 너비 설정
+      child: TextButton(
+        onPressed: () => _handleCategorySelect(emotion),
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.all(
+            _selectedEmotion == emotion 
+              ? const Color(0xFFB68D6B)
+              : Colors.transparent,
           ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Text(
-            _emotionLabels[emotion]!,
-            style: TextStyle(
-              color: _selectedEmotion == emotion ? Colors.white : Colors.black,
-              fontWeight: FontWeight.w500,
+          padding: WidgetStateProperty.all(
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // 패딩 조정
+          ),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
           ),
-          if (_isPremiumCategory(emotion))
-            const Padding(
-              padding: EdgeInsets.only(left: 4),
-              child: Icon(
-                Icons.lock,
-                size: 16,
-                color: Colors.black54,
+        ),
+        child: Column( // Row를 Column으로 변경
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _emotionLabels[emotion]!,
+              style: TextStyle(
+                color: _selectedEmotion == emotion ? Colors.white : Colors.black,
+                fontWeight: FontWeight.w500,
+                fontSize: 13, // 폰트 크기 조정
               ),
             ),
-        ],
+            if (_isPremiumCategory(emotion))
+              const Icon(
+                Icons.lock,
+                size: 12, // 아이콘 크기 줄임
+                color: Colors.black54,
+              ),
+          ],
+        ),
       ),
     );
   }
