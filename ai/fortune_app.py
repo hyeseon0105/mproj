@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
+from fastapi import FastAPI, Query, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from datetime import datetime
 import os
 from dotenv import load_dotenv
@@ -8,8 +9,16 @@ import httpx
 # 환경 변수 로드
 load_dotenv()
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
+
+# CORS 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # OpenAI API 설정
 api_key = os.getenv('OPENAI_API_KEY')
@@ -71,32 +80,29 @@ def generate_fortune(birthday):
         print(f"Error generating fortune: {str(e)}")
         return None
 
-@app.route('/fortune')
-def get_fortune():
-    birthday = request.args.get('birthday', '')  # YYYYMMDD 형식
-    
-    if not birthday or not birthday.isdigit() or len(birthday) != 8:
-        return jsonify({'error': '올바른 생년월일을 입력해주세요 (YYYYMMDD 형식)'}), 400
-    
+from pydantic import BaseModel
+
+class FortuneResponse(BaseModel):
+    fortune: str
+
+@app.get("/fortune", response_model=FortuneResponse)
+def get_fortune(birthday: str = Query(..., min_length=8, max_length=8, regex="^\\d{8}$")):
+    # 생년월일 유효성 검사
     try:
-        # 생년월일 유효성 검사
         year = int(birthday[:4])
         month = int(birthday[4:6])
         day = int(birthday[6:])
-        
         if not (1900 <= year <= datetime.now().year and 1 <= month <= 12 and 1 <= day <= 31):
-            return jsonify({'error': '올바른 생년월일을 입력해주세요.'}), 400
-            
-        # AI로 운세 생성
-        fortune_result = generate_fortune(birthday)
-        if fortune_result is None:
-            return jsonify({'error': '운세 생성 중 오류가 발생했습니다.'}), 500
+            raise HTTPException(status_code=400, detail="올바른 생년월일을 입력해주세요.")
+    except Exception:
+        raise HTTPException(status_code=400, detail="올바른 생년월일을 입력해주세요 (YYYYMMDD 형식)")
 
-        return jsonify({
-            'fortune': fortune_result['fortune']
-        })
-    except ValueError:
-        return jsonify({'error': '올바른 생년월일을 입력해주세요.'}), 400
+    # AI로 운세 생성
+    fortune_result = generate_fortune(birthday)
+    if fortune_result is None:
+        raise HTTPException(status_code=500, detail="운세 생성 중 오류가 발생했습니다.")
+    return fortune_result
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# FastAPI 실행은 uvicorn으로 하므로 아래 코드는 필요 없음
+# if __name__ == '__main__':
+#     app.run(debug=True)
