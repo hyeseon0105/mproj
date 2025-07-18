@@ -47,6 +47,9 @@ class AppState extends ChangeNotifier {
   DateTime? _userBirthday;
   bool _emoticonEnabled = true;
   
+  // 사용자가 선택한 이모티콘 카테고리 (기본값: shape)
+  Emotion _selectedEmoticonCategory = Emotion.shape;
+  
   // 사용자 설정 카테고리 정보
   Map<Emotion, List<String>> _userEmoticonCategories = {
     Emotion.shape: [
@@ -155,6 +158,13 @@ class AppState extends ChangeNotifier {
   bool get emoticonEnabled => _emoticonEnabled;
   Map<String, EmotionData> get emotionData => Map.unmodifiable(_emotionData);
   Map<Emotion, List<String>> get userEmoticonCategories => Map.unmodifiable(_userEmoticonCategories);
+  Emotion get selectedEmoticonCategory => _selectedEmoticonCategory;
+
+  // 사용자가 선택한 이모티콘 카테고리 설정
+  void setSelectedEmoticonCategory(Emotion emotion) {
+    _selectedEmoticonCategory = emotion;
+    notifyListeners();
+  }
 
   // 사용자 설정 카테고리 관리 메서드들
   void updateUserEmoticonCategory(Emotion emotion, List<String> emoticons) {
@@ -224,14 +234,18 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 사용자 설정 카테고리에서 이모지 가져오기
+  // 사용자 설정 카테고리에서 이모지 가져오기 (선택된 카테고리만 사용)
   String getUserEmoticon(Emotion emotion) {
-    final emoticons = _userEmoticonCategories[emotion];
+    // 사용자가 선택한 카테고리의 이모티콘만 사용
+    final emoticons = _userEmoticonCategories[_selectedEmoticonCategory];
     if (emoticons != null && emoticons.isNotEmpty) {
-      return emoticons.first; // 첫 번째 이모지 반환
+      // 감정에 따라 다른 인덱스의 이모티콘 반환 (감정별로 다른 이모티콘)
+      final emotionIndex = emotion.index;
+      final emoticonIndex = emotionIndex % emoticons.length;
+      return emoticons[emoticonIndex];
     }
     // 기본값 반환
-    return emotionEmojis[emotion] ?? '😊';
+    return emotionEmojis[_selectedEmoticonCategory] ?? '😊';
   }
 
   AppState() {
