@@ -134,26 +134,30 @@ class PaymentService {
       }
       
       print('PaymentWebView 띄우기 시작...');
-      final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      final result = await Navigator.of(context).push<String>(
         MaterialPageRoute(
           builder: (context) => PaymentWebView(
-            merchantUid: merchantUid,
-            amount: amount,
             name: name,
+            amount: amount,
             buyerEmail: buyerEmail,
             buyerName: buyerName,
-            onPaymentResult: (result) {
-              Navigator.of(context).pop(result);
-            },
           ),
         ),
       );
 
       print('PaymentWebView 결과: $result');
-      return result ?? {
-        'success': false,
-        'error': '결제가 취소되었습니다.',
-      };
+      if (result == 'success') {
+        return {
+          'success': true,
+          'merchant_uid': merchantUid,
+          'amount': amount,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': '결제가 취소되었습니다.',
+        };
+      }
     } catch (e) {
       print('WebView 결제 예외: $e');
       throw Exception('WebView 결제 중 오류: $e');

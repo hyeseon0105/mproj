@@ -6,6 +6,7 @@ import '../ui/card.dart';
 import '../ui/button.dart';
 import '../services/payment_service.dart';
 import 'dart:math';
+import 'dart:io' if (dart.library.html) 'dart:html' as html;
 
 class DiaryCalendar extends StatefulWidget {
   final Function(String)? onDateSelect;
@@ -219,7 +220,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
 
     // Empty cells for days before the first day of the month
     for (int i = 0; i < firstDayOfMonth; i++) {
-      days.add(const SizedBox(height: 90));
+      days.add(const SizedBox(height: 64));
     }
 
     // Days of the month
@@ -232,15 +233,14 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
 
       days.add(
         SizedBox(
-          height: 90, // 셀 높이를 늘려서 이모지가 짤리지 않도록 함
+          height: 64,
           child: Stack(
-            clipBehavior: Clip.none, // 이모지가 짤리지 않도록 설정
             children: [
               Positioned.fill(
                 child: Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: Material(
-                    color: AppColors.calendarBg,
+                    color: AppColors.calendarDateBg,
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
@@ -271,52 +271,36 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                                 ),
                               ),
                             ),
-                          // 숫자 - 항상 중앙에 고정
+                          // 숫자 위치 조정
                           Positioned.fill(
-                            child: Center(
-                              child: Text(
-                                day.toString(),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                                  color: isToday 
-                                    ? AppColors.primary
-                                    : AppColors.mutedForeground,
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                bottom: dayData != null && widget.emoticonEnabled ? 16 : 0,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  day.toString(),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                    color: isToday 
+                                      ? AppColors.primary
+                                      : AppColors.mutedForeground,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                          // 이모티콘 - Transform으로 셀 밖으로 이동 (절대 짤리지 않음)
+                          // 이모티콘 - 상단에 배치
                           if (dayData != null && widget.emoticonEnabled)
-                            Positioned(
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              child: Center(
-                                child: Transform.translate(
-                                  offset: const Offset(0, -20),
-                                  child: Container(
-                                    width: 24,
-                                    height: 24,
-                                    child: Image.network(
-                                      dayData.emoji,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          width: 24,
-                                          height: 24,
-                                          decoration: BoxDecoration(
-                                            color: AppColors.muted,
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: const Icon(
-                                            Icons.error,
-                                            size: 16,
-                                            color: Colors.grey,
-                                          ),
-                                        );
-                                      },
-                                    ),
+                            Positioned.fill(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Align(
+                                  alignment: Alignment.topCenter,
+                                  child: Text(
+                                    dayData.emoji,
+                                    style: const TextStyle(fontSize: 18),
                                   ),
                                 ),
                               ),
@@ -560,151 +544,134 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     final year = currentDate.year;
     final month = currentDate.month;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Container(
-        constraints: const BoxConstraints(minHeight: double.infinity),
-        color: AppColors.background,
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 448), // max-w-md
-              child: Column(
+    return Container(
+      constraints: const BoxConstraints(minHeight: double.infinity),
+      color: AppColors.background,
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 448), // max-w-md
+          child: Column(
+            children: [
+              // Header with Settings
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // Header with Logo and Settings
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Logo
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16), // 원하는 만큼 조절 (예: 16)
-                        child: SizedBox(
-                          height: 50,
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            fit: BoxFit.contain,
+                  AppButton(
+                    onPressed: widget.onSettingsClick,
+                    variant: ButtonVariant.ghost,
+                    size: ButtonSize.icon,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
+                        Icons.settings,
+                        size: 20,
+                        color: AppColors.foreground,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Calendar Card
+              AppCard(
+                backgroundColor: AppColors.calendarBg,
+                borderRadius: BorderRadius.circular(24),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    // Month Navigation
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        AppButton(
+                          onPressed: () => _navigateMonth('prev'),
+                          variant: ButtonVariant.ghost,
+                          size: ButtonSize.icon,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.chevron_left, size: 16),
                           ),
                         ),
-                      ),
-                      // Settings Button
-                      AppButton(
-                        onPressed: widget.onSettingsClick,
-                        variant: ButtonVariant.ghost,
-                        size: ButtonSize.icon,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Icon(
-                            Icons.settings,
-                            size: 20,
+                        Text(
+                          '$year.${month.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                             color: AppColors.foreground,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Calendar Card
-                  AppCard(
-                    backgroundColor: AppColors.calendarBg,
-                    borderRadius: BorderRadius.circular(24),
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        // Month Navigation
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            AppButton(
-                              onPressed: () => _navigateMonth('prev'),
-                              variant: ButtonVariant.ghost,
-                              size: ButtonSize.icon,
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Icon(Icons.chevron_left, size: 16),
-                              ),
+                        AppButton(
+                          onPressed: () => _navigateMonth('next'),
+                          variant: ButtonVariant.ghost,
+                          size: ButtonSize.icon,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            Text(
-                              '$year.${month.toString().padLeft(2, '0')}',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.foreground,
-                              ),
-                            ),
-                            AppButton(
-                              onPressed: () => _navigateMonth('next'),
-                              variant: ButtonVariant.ghost,
-                              size: ButtonSize.icon,
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Icon(Icons.chevron_right, size: 16),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Day Headers
-                        GridView.count(
-                          crossAxisCount: 7,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          childAspectRatio: 1,
-                          mainAxisSpacing: 4,
-                          crossAxisSpacing: 4,
-                          children: [
-                            ...dayNames.map((day) => Container(
-                              height: 32,
-                              alignment: Alignment.center,
-                              child: Text(
-                                day,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.mutedForeground,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            )),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Calendar Grid
-                        GridView.count(
-                          crossAxisCount: 7,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          childAspectRatio: 1,
-                          mainAxisSpacing: 4,
-                          crossAxisSpacing: 4,
-                          children: _renderCalendarDays(),
+                            child: const Icon(Icons.chevron_right, size: 16),
+                          ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 24),
 
-                  // Today's Fortune Section
-                  _renderFortuneSection(),
-                ],
+                    // Day Headers
+                    GridView.count(
+                      crossAxisCount: 7,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: 1,
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                      children: [
+                        ...dayNames.map((day) => Container(
+                          height: 32,
+                          alignment: Alignment.center,
+                          child: Text(
+                            day,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.mutedForeground,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        )),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Calendar Grid
+                    GridView.count(
+                      crossAxisCount: 7,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: 1,
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                      children: _renderCalendarDays(),
+                    ),
+                  ],
+                ),
               ),
-            ),
+
+              // Today's Fortune Section
+              _renderFortuneSection(),
+            ],
           ),
-        ), // SingleChildScrollView 닫는 괄호
+        ),
       ),
     );
   }
-} 
+}

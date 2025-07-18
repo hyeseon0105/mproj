@@ -8,8 +8,11 @@ import '../theme.dart';
 import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
-import 'dart:io';
-// dart:html은 웹에서만 사용 가능하므로 조건부 import
+// 웹 전용 이미지 업로드 (조건부 import)
+import 'web_image_upload.dart' if (dart.library.io) 'web_image_upload_stub.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+// import 'package:speech_to_text/speech_to_text.dart' as stt;  // 모바일에서 문제가 있어서 임시로 비활성화
 
 typedef SaveDiaryCallback = void Function(String entry, Emotion emotion, List<String>? images);
 
@@ -61,8 +64,11 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
 
-  // 실제 기능 구현을 위한 인스턴스들
-  final ImagePicker _imagePicker = ImagePicker();
+  // stt.SpeechToText? _speech;  // 모바일에서 문제가 있어서 임시로 비활성화
+  // bool _isSpeechAvailable = false;  // 모바일에서 문제가 있어서 임시로 비활성화
+  // List<int>? _recordedAudioBytes;  // 모바일에서 문제가 있어서 임시로 비활성화
+
+  // ImagePicker는 실제 앱에서 image_picker 패키지로 구현
 
   // 감정 체인 데이터 (Firebase 이미지 URL 사용)
   final List<EmotionChainItem> emotionChain = [
@@ -181,6 +187,9 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       curve: Curves.easeInOut,
     );
 
+    // _speech = stt.SpeechToText();  // 모바일에서 문제가 있어서 임시로 비활성화
+    // _initSpeech();  // 모바일에서 문제가 있어서 임시로 비활성화
+
     // Generate AI message for existing entry when component mounts
     if (widget.existingEntry?.entry != null && _aiMessage.isEmpty) {
       final detailedEmotion = _analyzeDetailedEmotion(widget.existingEntry!.entry!);
@@ -190,6 +199,10 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       });
       _fadeAnimationController.forward();
     }
+  }
+
+  Future<void> _initSpeech() async {
+    // 음성 인식 기능은 현재 모바일에서 비활성화됨
   }
 
   @override
@@ -300,32 +313,90 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     if (_entryController.text.trim().isEmpty) {
       return;
     }
-    
     setState(() {
       _isAnalyzing = true;
     });
-    
-    // Simulate AI analysis delay
     await Future.delayed(const Duration(milliseconds: 1500));
     
+    final emotion = _analyzeEmotion(_entryController.text);
     final detailedEmotion = _analyzeDetailedEmotion(_entryController.text);
-    
-    // 사용자가 설정한 카테고리 가져오기 (기본값은 shape)
-    final userCategory = Emotion.shape; // TODO: 실제 사용자 설정에서 가져오기
-    
-    // Generate comfort message and update emoji
     final comfortMessage = _generateComfortMessage(detailedEmotion, _entryController.text);
     setState(() {
       _aiMessage = comfortMessage;
-      _currentEmoji = emotionEmojis[userCategory]!; // 사용자 설정 카테고리에 따른 이모티콘
+      _currentEmoji = emotionEmojis[emotion]!;
       _isAnalyzing = false;
       _isSaved = true;
     });
-    
     _fadeAnimationController.forward();
-    
     // 일기 데이터 저장 (이미지 포함)
-    widget.onSave(_entryController.text, userCategory, _uploadedImages.isNotEmpty ? _uploadedImages : null);
+    await _saveDiaryToBackend(_entryController.text, emotion, _uploadedImages.isNotEmpty ? _uploadedImages : null);
+    widget.onSave(_entryController.text, emotion, _uploadedImages.isNotEmpty ? _uploadedImages : null);
+  }
+
+  Future<void> _saveDiaryToBackend(String entry, Emotion emotion, List<String>? images) async {
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:8000/api/posts/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': '일기',
+          'content': entry,
+          'status': 'published',
+          'images': images ?? [],
+        }),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // 저장 성공
+      } else {
+        // 오류 처리
+      }
+    } catch (e) {
+      // 오류 처리
+    }
+  }
+
+  Emotion _analyzeEmotion(String text) {
+    // 간단한 감정 분석 로직 - 실제 Emotion enum에 맞게 수정
+    final lowerText = text.toLowerCase();
+    
+    if (lowerText.contains('행복') || lowerText.contains('기쁘') || lowerText.contains('좋') || 
+        lowerText.contains('즐거') || lowerText.contains('웃') || lowerText.contains('😊') || 
+        lowerText.contains('😄') || lowerText.contains('😍')) {
+      return Emotion.fruit; // happy -> fruit
+    } else if (lowerText.contains('슬프') || lowerText.contains('우울') || lowerText.contains('눈물') || 
+               lowerText.contains('😢') || lowerText.contains('😭') || lowerText.contains('😔')) {
+      return Emotion.weather; // sad -> weather
+    } else if (lowerText.contains('화나') || lowerText.contains('짜증') || lowerText.contains('분노') || 
+               lowerText.contains('😠') || lowerText.contains('😡') || lowerText.contains('💢')) {
+      return Emotion.animal; // angry -> animal
+    } else if (lowerText.contains('걱정') || lowerText.contains('불안') || lowerText.contains('긴장') || 
+               lowerText.contains('😰') || lowerText.contains('😨') || lowerText.contains('😱')) {
+      return Emotion.shape; // anxious -> shape
+    } else if (lowerText.contains('사랑') || lowerText.contains('감동') || lowerText.contains('따뜻') || 
+               lowerText.contains('💕') || lowerText.contains('💖') || lowerText.contains('🥰')) {
+      return Emotion.fruit; // love -> fruit
+    } else if (lowerText.contains('열정') || lowerText.contains('의지') || lowerText.contains('도전') || 
+               lowerText.contains('💪') || lowerText.contains('🔥') || lowerText.contains('⚡')) {
+      return Emotion.animal; // determined -> animal
+    } else if (lowerText.contains('평온') || lowerText.contains('차분') || lowerText.contains('여유') || 
+               lowerText.contains('😌') || lowerText.contains('🧘') || lowerText.contains('🌸')) {
+      return Emotion.weather; // calm -> weather
+    } else if (lowerText.contains('신뢰') || lowerText.contains('자신') || lowerText.contains('확신') || 
+               lowerText.contains('😎') || lowerText.contains('💪') || lowerText.contains('✨')) {
+      return Emotion.shape; // confident -> shape
+    } else if (lowerText.contains('혼란') || lowerText.contains('어려움') || lowerText.contains('막막') || 
+               lowerText.contains('😵') || lowerText.contains('🤔') || lowerText.contains('❓')) {
+      return Emotion.shape; // confused -> shape
+    } else if (lowerText.contains('흥미') || lowerText.contains('재미') || lowerText.contains('새로움') || 
+               lowerText.contains('😃') || lowerText.contains('🎉') || lowerText.contains('🎊')) {
+      return Emotion.fruit; // excited -> fruit
+    } else if (lowerText.contains('감사') || lowerText.contains('고마') || lowerText.contains('은혜') || 
+               lowerText.contains('🙏') || lowerText.contains('💝') || lowerText.contains('✨')) {
+      return Emotion.weather; // touched -> weather
+    }
+    
+    // 기본값
+    return Emotion.fruit; // neutral -> fruit
   }
 
   String _formatDate(String dateStr) {
@@ -347,78 +418,34 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       ),
     );
 
-    // 로컬 파일인지 네트워크 이미지인지 확인
-    if (imagePath.startsWith('http')) {
-    return Image.network(
-      imagePath,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => errorWidget,
-    );
-    } else {
-      return Image.file(
-        File(imagePath),
+    // 웹에서는 모든 이미지가 네트워크 이미지 또는 data URL로 처리
+    if (kIsWeb) {
+      return Image.network(
+        imagePath,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => errorWidget,
       );
+    } else {
+      // 모바일에서는 기본 이미지 아이콘 표시
+      return errorWidget;
     }
   }
 
   Future<void> _handleImageUpload() async {
     if (_uploadedImages.length >= 3) return;
 
-    try {
-      // 권한 요청
-      if (!kIsWeb) {
-        final status = await Permission.camera.request();
-        if (status.isDenied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('카메라 권한이 필요합니다.')),
-          );
-          return;
-        }
-      }
-
-      // 이미지 선택 다이얼로그
-      final ImageSource? source = await showDialog<ImageSource>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('이미지 선택'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('카메라로 촬영'),
-                onTap: () => Navigator.of(context).pop(ImageSource.camera),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('갤러리에서 선택'),
-                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      if (source == null) return;
-
-      // 이미지 선택
-      final XFile? image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 80,
-      );
-
-      if (image != null) {
+    // 웹에서만 동작하도록 조건부 처리
+    if (kIsWeb) {
+      // 웹 전용 코드
+      WebImageUpload.uploadImage((imageData) {
         setState(() {
-          _uploadedImages.add(image.path);
+          _uploadedImages.add(imageData);
         });
-      }
-    } catch (e) {
+      });
+    } else {
+      // 모바일에서는 이미지 업로드 기능을 비활성화
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('이미지 업로드 중 오류가 발생했습니다: $e')),
+        const SnackBar(content: Text('이미지 업로드는 웹에서만 지원됩니다.')),
       );
     }
   }
@@ -430,17 +457,18 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   }
 
   Future<void> _startRecording() async {
-    // 음성 인식 기능은 현재 구현되지 않음
+    // 음성 인식 기능은 현재 모바일에서 비활성화됨
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('음성 인식 기능은 준비 중입니다.')),
+      const SnackBar(content: Text('음성 인식 기능은 웹에서만 지원됩니다.')),
     );
   }
 
-  void _stopRecording() {
-    setState(() {
-      _isRecording = false;
-      _recordingTime = 0;
-    });
+  Future<void> _stopRecording() async {
+    // 음성 인식 기능은 현재 모바일에서 비활성화됨
+  }
+
+  Future<void> _sendTextToWhisper(String text) async {
+    // 음성 인식 기능은 현재 모바일에서 비활성화됨
   }
 
   void _handleRecordingToggle() {
@@ -495,8 +523,8 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
             child: Column(
               children: [
                 // Back Button
-                Container(
-                  margin: const EdgeInsets.only(bottom: 16, top: 20),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: AppButton(
