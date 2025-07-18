@@ -32,10 +32,18 @@ dependencies:
     sdk: flutter
   provider: ^6.1.1
   shared_preferences: ^2.2.2
+  http: ^1.1.0
+  crypto: ^3.0.3
+  webview_flutter: ^4.4.2  # WebView 기반 결제용
+  url_launcher: ^6.2.1
+  image_picker: ^1.0.4  # 이미지 선택/촬영용
+  permission_handler: ^11.0.1  # 권한 처리용
+  camera: ^0.10.5+5  # 카메라 접근용
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  qr_flutter: ^4.0.0 # QR 코드 패키지
 
 dev_dependencies:
   flutter_test:

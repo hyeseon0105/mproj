@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/app_state.dart';
 import '../theme.dart';
 import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
+import 'dart:io';
 // dart:html은 웹에서만 사용 가능하므로 조건부 import
 
 typedef SaveDiaryCallback = void Function(String entry, Emotion emotion, List<String>? images);
@@ -16,6 +18,14 @@ class EmotionChainItem {
   final Emotion type;
 
   EmotionChainItem({required this.emoji, required this.type});
+}
+
+
+
+// 세부 감정 타입 추가
+enum DetailedEmotion {
+  angry, anxious, calm, confident, confused, determined, 
+  excited, happy, love, neutral, sad, touched
 }
 
 class DiaryEntry extends StatefulWidget {
@@ -51,25 +61,107 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
 
-  // ImagePicker는 실제 앱에서 image_picker 패키지로 구현
+  // 실제 기능 구현을 위한 인스턴스들
+  final ImagePicker _imagePicker = ImagePicker();
 
-  // 감정 체인 데이터
+  // 감정 체인 데이터 (Firebase 이미지 URL 사용)
   final List<EmotionChainItem> emotionChain = [
-    EmotionChainItem(emoji: '🍎', type: Emotion.fruit),
-    EmotionChainItem(emoji: '🐶', type: Emotion.animal),
-    EmotionChainItem(emoji: '⭐', type: Emotion.shape),
-    EmotionChainItem(emoji: '☀️', type: Emotion.weather),
-    EmotionChainItem(emoji: '🍇', type: Emotion.fruit),
-    EmotionChainItem(emoji: '🐱', type: Emotion.animal),
+    EmotionChainItem(emoji: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39', type: Emotion.fruit),
+    EmotionChainItem(emoji: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f', type: Emotion.animal),
+    EmotionChainItem(emoji: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5', type: Emotion.shape),
+    EmotionChainItem(emoji: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f', type: Emotion.weather),
+    EmotionChainItem(emoji: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fhappy_fruit-removebg-preview.png?alt=media&token=d10a503b-fee7-4bc2-b141-fd4b33dae1f1', type: Emotion.fruit),
+    EmotionChainItem(emoji: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fhappy_animal-removebg-preview.png?alt=media&token=66ff8e2d-d941-4fd7-9d7f-9766db03cbd5', type: Emotion.animal),
   ];
 
-  // 감정에 따른 이모티콘 매핑
+  // 감정에 따른 Firebase 이미지 URL 매핑 (기본값은 neutral)
   final Map<Emotion, String> emotionEmojis = {
-    Emotion.fruit: '🍎',
-    Emotion.animal: '🐶',
-    Emotion.shape: '⭐',
-    Emotion.weather: '☀️',
+    Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
+    Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
+    Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
+    Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
   };
+
+  // 상세 감정별 아이콘 URL 매핑
+  final Map<DetailedEmotion, Map<Emotion, String>> detailedEmotionIcons = {
+    DetailedEmotion.angry: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fangry_animal-removebg-preview.png?alt=media&token=9bde31db-8801-4af0-9368-e6ce4a35fbac',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fangry_fruit-removebg-preview.png?alt=media&token=679778b9-5a1b-469a-8e86-b01585cb1ee2',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fangry_weather-removebg-preview.png?alt=media&token=2f4c6212-697d-49b7-9d5e-ae1f2b1fa84e',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fangry_shape-removebg-preview.png?alt=media&token=92a25f79-4c1d-4b5d-9e5c-2f469e56cefa',
+
+    },
+    DetailedEmotion.anxious: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fanxious_animal-removebg-preview.png?alt=media&token=bd25e31d-629b-4e79-b95e-019f8c76dac2',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fanxious_fruit-removebg-preview.png?alt=media&token=be8f8279-2b08-47bf-9856-c39daf5eac40',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fanxious_weather-removebg-preview.png?alt=media&token=fc718a17-8d8e-4ed1-a78a-891fa9a149d0',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fanxious_shape-removebg-preview.png?alt=media&token=7859ebac-cd9d-43a3-a42c-aec651d37e6e',
+    },
+    DetailedEmotion.calm: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fcalm_animal-removebg-preview.png?alt=media&token=afd7bf65-5150-40e3-8b95-cd956dff113d',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fcalm_fruit-removebg-preview.png?alt=media&token=839efcad-0022-4cc9-ac38-90175d9026d2',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fcalm_weather-removebg-preview.png?alt=media&token=7703fd25-fe2b-4750-a415-5f86c4e7b058',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fcalm_shape-removebg-preview.png?alt=media&token=cdc2fa85-10b7-46f6-881c-dd874c38b3ea',
+    },
+    DetailedEmotion.confident: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fconfident__animal-removebg-preview.png?alt=media&token=2983b323-a2a6-40aa-9b6c-a381d944dd27',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fconfident_fruit-removebg-preview.png?alt=media&token=6edcc903-8d78-4dd9-bcdd-1c6b26645044',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fconfident_weather-removebg-preview.png?alt=media&token=ea30d002-312b-4ae5-ad85-933bbc009dc6',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fconfident_shape-removebg-preview.png?alt=media&token=8ab02bc8-8569-42ff-b78d-b9527f15d0af',
+    },
+    DetailedEmotion.confused: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fconfused__animal-removebg-preview.png?alt=media&token=74192a1e-86a7-4eb6-b690-154984c427dc',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fconfused_fruit-removebg-preview.png?alt=media&token=7adfcf22-af7a-4eb1-a225-34875b6540cf',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fconfused_weather-removebg-preview.png?alt=media&token=afdfb6bf-2c69-4ef2-97a1-2e5aa67e6fdb',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fconfused_shape-removebg-preview.png?alt=media&token=4794d127-9b61-4c68-86de-8478c4da8fb9',
+    },
+    DetailedEmotion.determined: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fdetermined_animal-removebg-preview.png?alt=media&token=abf05981-4ab3-49b3-ba37-096ab8c22478',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fdetermined_fruit-removebg-preview.png?alt=media&token=ed288879-86c4-4d6d-946e-477f2aafc3ce',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fdetermined_weather-removebg-preview.png?alt=media&token=0eb8fb3d-22dd-4b4f-8e12-7d830f32be6d',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fdetermined_shape-removebg-preview.png?alt=media&token=69eb4cf0-ab61-4f5e-add3-b2148dc2a108',
+    },
+    DetailedEmotion.excited: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fexcited_animal-removebg-preview.png?alt=media&token=48442937-5504-4392-88a9-039aef405f14',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fexcited_fruit-removebg-preview.png?alt=media&token=0284bce2-aa88-4766-97fb-5d5d2248cf31',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fexcited_weather-removebg-preview.png?alt=media&token=5de71f38-1178-4e3c-887e-af07547caba9',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fexcited_shape-removebg-preview.png?alt=media&token=85fadfb8-7006-44d0-a39d-b3fd6070bb96',
+    },
+    DetailedEmotion.happy: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fhappy_animal-removebg-preview.png?alt=media&token=66ff8e2d-d941-4fd7-9d7f-9766db03cbd5',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fhappy_fruit-removebg-preview.png?alt=media&token=d10a503b-fee7-4bc2-b141-fd4b33dae1f1',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fhappy_weather-removebg-preview.png?alt=media&token=fd77e998-6f47-459a-bd1c-458e309fed41',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fhappy_shape-removebg-preview.png?alt=media&token=5a8aa9dd-6ea5-4132-95af-385340846076',
+    },
+    DetailedEmotion.love: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Flove_animal-removebg-preview.png?alt=media&token=e0e2ccbd-b59a-4d09-968a-562208f90be1',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Flove_fruit-removebg-preview.png?alt=media&token=ba7857c6-5afd-48e0-addd-7b3f54583c15',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Flove_weather-removebg-preview.png?alt=media&token=2451105b-ab3e-482d-bf9f-12f0a6a69a53',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Flove_shape-removebg-preview.png?alt=media&token=1a7ec74f-4297-42a4-aeb8-97aee1e9ff6c',
+    },
+    DetailedEmotion.neutral: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
+    },
+    DetailedEmotion.sad: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fsad_animal-removebg-preview.png?alt=media&token=04c99bd8-8ad4-43de-91cd-3b7354780677',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fsad_fruit-removebg-preview.png?alt=media&token=e9e0b0f7-6590-4209-a7d1-26377eb33c05',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fsad_weather-removebg-preview.png?alt=media&token=aa972b9a-8952-4dc7-abe7-692ec7be0d16',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fsad_shape-removebg-preview.png?alt=media&token=acbc7284-1126-4428-a3b2-f8b6e7932b98',
+    },
+    DetailedEmotion.touched: {
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Ftouched_animal-removebg-preview.png?alt=media&token=629be9ec-be17-407f-beb0-6b67f09b7036',
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Ftouched_fruit-removebg-preview.png?alt=media&token=c69dee6d-7d53-4af7-a884-2f751aecbe42',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Ftouched_weather-removebg-preview.png?alt=media&token=5e224042-72ae-45a4-891a-8e6abdb5285c',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Ftouched_shape-removebg-preview.png?alt=media&token=bbb50a1c-90d6-43fd-be40-4be4f51bc1d0',
+    },
+  };
+
+  // 현재 선택된 감정 상태
+  DetailedEmotion _currentDetailedEmotion = DetailedEmotion.happy;
+  Emotion _currentEmotionCategory = Emotion.animal;
 
   @override
   void initState() {
@@ -91,8 +183,8 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
 
     // Generate AI message for existing entry when component mounts
     if (widget.existingEntry?.entry != null && _aiMessage.isEmpty) {
-      final emotion = _analyzeEmotion(widget.existingEntry!.entry!);
-      final comfortMessage = _generateComfortMessage(emotion, widget.existingEntry!.entry!);
+      final detailedEmotion = _analyzeDetailedEmotion(widget.existingEntry!.entry!);
+      final comfortMessage = _generateComfortMessage(detailedEmotion, widget.existingEntry!.entry!);
       setState(() {
         _aiMessage = comfortMessage;
       });
@@ -114,48 +206,92 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     return true;
   }
 
-  Emotion _analyzeEmotion(String text) {
-    // Simple emotion analysis based on keywords
-    final fruitWords = ['과일', '사과', '바나나', '딸기', '포도', '맛있', '달콤', '상큼'];
-    final animalWords = ['동물', '강아지', '고양이', '새', '토끼', '귀여', '애완동물', '반려동물'];
-    final shapeWords = ['모양', '원', '사각형', '삼각형', '별', '도형', '그림', '디자인'];
-    final weatherWords = ['날씨', '맑은', '비', '눈', '구름', '햇빛', '바람', '기온'];
+  // AI 감정 분석 - DetailedEmotion 반환
+  DetailedEmotion _analyzeDetailedEmotion(String text) {
+    final angryWords = ['화나', '분노', '짜증', '열받', '빡치', '열불'];
+    final anxiousWords = ['불안', '걱정', '긴장', '두려움', '떨림', '초조'];
+    final calmWords = ['평온', '차분', '여유', '편안', '안정', '고요'];
+    final confidentWords = ['자신', '확신', '똑똑', '능력', '성공', '자부심'];
+    final confusedWords = ['혼란', '헷갈', '어려움', '모르겠', '복잡', '난감'];
+    final determinedWords = ['의지', '결심', '목표', '노력', '도전', '포기하지'];
+    final excitedWords = ['설렘', '기대', '떨림', '긴장', '두근', '흥분'];
+    final happyWords = ['행복', '기쁨', '웃음', '즐거움', '신나', '좋아'];
+    final loveWords = ['사랑', '연애', '데이트', '키스', '포옹', '로맨틱'];
+    final neutralWords = ['보통', '평범', '일반', '그냥', '그저', '그대로'];
+    final sadWords = ['슬픔', '우울', '눈물', '힘들', '아픔', '외로움'];
+    final touchedWords = ['감동', '감사', '따뜻', '마음', '소중', '감동적'];
 
     final lowerText = text.toLowerCase();
     
-    if (fruitWords.any((word) => lowerText.contains(word))) return Emotion.fruit;
-    if (animalWords.any((word) => lowerText.contains(word))) return Emotion.animal;
-    if (shapeWords.any((word) => lowerText.contains(word))) return Emotion.shape;
-    if (weatherWords.any((word) => lowerText.contains(word))) return Emotion.weather;
+    if (angryWords.any((word) => lowerText.contains(word))) return DetailedEmotion.angry;
+    if (anxiousWords.any((word) => lowerText.contains(word))) return DetailedEmotion.anxious;
+    if (calmWords.any((word) => lowerText.contains(word))) return DetailedEmotion.calm;
+    if (confidentWords.any((word) => lowerText.contains(word))) return DetailedEmotion.confident;
+    if (confusedWords.any((word) => lowerText.contains(word))) return DetailedEmotion.confused;
+    if (determinedWords.any((word) => lowerText.contains(word))) return DetailedEmotion.determined;
+    if (excitedWords.any((word) => lowerText.contains(word))) return DetailedEmotion.excited;
+    if (happyWords.any((word) => lowerText.contains(word))) return DetailedEmotion.happy;
+    if (loveWords.any((word) => lowerText.contains(word))) return DetailedEmotion.love;
+    if (neutralWords.any((word) => lowerText.contains(word))) return DetailedEmotion.neutral;
+    if (sadWords.any((word) => lowerText.contains(word))) return DetailedEmotion.sad;
+    if (touchedWords.any((word) => lowerText.contains(word))) return DetailedEmotion.touched;
     
-    return Emotion.fruit; // default to fruit
+    return DetailedEmotion.happy; // 기본값
   }
 
-  String _generateComfortMessage(Emotion emotion, String entryText) {
+  String _generateComfortMessage(DetailedEmotion detailedEmotion, String entryText) {
     final messages = {
-      Emotion.fruit: [
-        "오늘은 과일처럼 상큼하고 달콤한 하루였나 봐요! 자연의 맛과 향을 만끽하는 순간들이 소중해요 🍎",
-        "신선하고 건강한 에너지가 느껴져요! 과일의 생명력처럼 활기찬 하루를 보내셨네요 🍓",
-        "달콤하고 맛있는 순간들이 가득했군요! 이런 즐거운 경험들이 더 많이 이어지길 바라요 🍊"
+      DetailedEmotion.angry: [
+        "화가 난 하루였군요. 이런 감정도 자연스러운 거예요. 마음을 진정시켜보세요 🔥",
+        "분노가 가득한 하루였나 봐요. 깊은 숨을 쉬며 마음을 차분히 해보세요 💪",
       ],
-      Emotion.animal: [
-        "동물들과 함께한 특별한 하루였나 봐요! 작은 생명들과의 교감은 정말 소중한 경험이에요 🐶",
-        "귀여운 동물들처럼 순수하고 따뜻한 마음이 느껴져요! 이런 순간들이 마음을 치유해죠 🐱",
-        "자연과 생명에 대한 사랑이 전해져요! 동물들과의 만남이 특별한 의미를 준 하루였군요 🐸"
+      DetailedEmotion.anxious: [
+        "불안한 하루였군요. 걱정이 많았나 봐요. 모든 일이 잘 될 거예요 🌸",
+        "긴장된 하루였나 봐요. 차분히 생각해보면 해결책이 보일 거예요 🕊️",
       ],
-      Emotion.shape: [
-        "창의적이고 아름다운 모양들을 발견한 하루였나 봐요! 예술적 감성이 풍부하게 느껴져요 ⭐",
-        "기하학적이고 조화로운 패턴들처럼, 오늘 하루도 균형 잡힌 모습이었군요 🔶",
-        "다양한 형태와 색깔들이 어우러진 특별한 하루였네요! 디자인적 영감이 가득한 시간이었어요 🔷"
+      DetailedEmotion.calm: [
+        "평온하고 차분한 하루였군요. 안정된 마음으로 보낸 소중한 시간이었어요 😌",
+        "고요한 하루였군요. 편안함과 평온함이 가득한 하루였네요! 🌿",
       ],
-      Emotion.weather: [
-        "날씨만큼이나 변화무쌍하고 아름다운 하루였나 봐요! 자연의 힘을 느끼는 순간들이 소중해요 ☀️",
-        "맑은 하늘처럼 깨끗하고 상쾌한 기분이 드는 하루였군요! 좋은 날씨가 마음도 밝게 해줬나 봐요 🌈",
-        "계절의 변화를 온몸으로 느끼며 보낸 의미 있는 하루였네요! 자연과 하나 되는 기분이었어요 🌧️"
-      ]
+      DetailedEmotion.confident: [
+        "자신감 넘치는 하루였군요! 당신의 능력을 믿어요 💪",
+        "확신에 찬 하루였나 봐요. 이런 자신감이 계속 이어지길 바라요 ⭐",
+      ],
+      DetailedEmotion.confused: [
+        "헷갈리는 하루였군요. 복잡한 마음이었나 봐요. 천천히 정리해보세요 🤔",
+        "혼란스러운 하루였나 봐요. 시간이 지나면 답이 보일 거예요 💭",
+      ],
+      DetailedEmotion.determined: [
+        "의지가 가득한 하루였군요! 목표를 향해 나아가는 모습이 멋져요 🎯",
+        "결심이 굳은 하루였나 봐요. 포기하지 않는 당신이 자랑스러워요 💪",
+      ],
+      DetailedEmotion.excited: [
+        "설렘이 가득한 하루였군요! 떨림과 긴장이 모두 넘치는 즐거운 시간이었어요 🤩",
+        "두근거리는 하루였군요. 흥분과 기대가 가득한 하루였네요! ✨",
+      ],
+      DetailedEmotion.happy: [
+        "정말 행복한 하루였나 봐요! 이런 기쁨이 계속 이어지길 바라요 😄",
+        "웃음이 가득한 하루였군요! 행복한 순간들이 더 많이 찾아올 거예요 😄",
+      ],
+      DetailedEmotion.love: [
+        "사랑스러운 하루였군요! 연애와 로맨틱한 순간들이 가득했네요 💕",
+        "키스와 포옹이 가득한 하루였군요. 따뜻한 사랑이 가득한 하루였네요! 💕",
+      ],
+      DetailedEmotion.neutral: [
+        "평범한 하루였군요. 이런 일상의 소중함을 느끼는 시간이었어요 🌟",
+        "보통의 하루였나 봐요. 작은 행복들이 모여 큰 기쁨이 되는 거예요 ✨",
+      ],
+      DetailedEmotion.sad: [
+        "힘든 하루였군요. 슬픔도 자연스러운 감정이에요. 곧 좋은 일들이 찾아올 거예요 😢",
+        "마음이 아픈 하루였나 봐요. 이런 감정도 인정하고 받아들이는 게 중요해요 💙",
+      ],
+      DetailedEmotion.touched: [
+        "감동적인 하루였군요! 마음이 따뜻해지는 순간들이 있었나 봐요 💖",
+        "감사한 하루였나 봐요. 소중한 순간들을 만끽하는 시간이었어요 🙏",
+      ],
     };
 
-    final emotionMessages = messages[emotion] ?? messages[Emotion.fruit]!;
+    final emotionMessages = messages[detailedEmotion] ?? messages[DetailedEmotion.happy]!;
     final random = Random();
     return emotionMessages[random.nextInt(emotionMessages.length)];
   }
@@ -172,13 +308,16 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     // Simulate AI analysis delay
     await Future.delayed(const Duration(milliseconds: 1500));
     
-    final emotion = _analyzeEmotion(_entryController.text);
+    final detailedEmotion = _analyzeDetailedEmotion(_entryController.text);
+    
+    // 사용자가 설정한 카테고리 가져오기 (기본값은 shape)
+    final userCategory = Emotion.shape; // TODO: 실제 사용자 설정에서 가져오기
     
     // Generate comfort message and update emoji
-    final comfortMessage = _generateComfortMessage(emotion, _entryController.text);
+    final comfortMessage = _generateComfortMessage(detailedEmotion, _entryController.text);
     setState(() {
       _aiMessage = comfortMessage;
-      _currentEmoji = emotionEmojis[emotion]!; // 새로 분석된 감정에 따라 이모티콘 업데이트
+      _currentEmoji = emotionEmojis[userCategory]!; // 사용자 설정 카테고리에 따른 이모티콘
       _isAnalyzing = false;
       _isSaved = true;
     });
@@ -186,7 +325,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     _fadeAnimationController.forward();
     
     // 일기 데이터 저장 (이미지 포함)
-    widget.onSave(_entryController.text, emotion, _uploadedImages.isNotEmpty ? _uploadedImages : null);
+    widget.onSave(_entryController.text, userCategory, _uploadedImages.isNotEmpty ? _uploadedImages : null);
   }
 
   String _formatDate(String dateStr) {
@@ -196,7 +335,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     final dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     final dayName = dayNames[date.weekday % 7];
     
-    return '${month}월 ${day}일\n$dayName';
+    return '$month월 $day일\n$dayName';
   }
 
   Widget _buildImageWidget(String imagePath) {
@@ -208,27 +347,78 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       ),
     );
 
+    // 로컬 파일인지 네트워크 이미지인지 확인
+    if (imagePath.startsWith('http')) {
     return Image.network(
       imagePath,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) => errorWidget,
     );
+    } else {
+      return Image.file(
+        File(imagePath),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => errorWidget,
+      );
+    }
   }
 
   Future<void> _handleImageUpload() async {
     if (_uploadedImages.length >= 3) return;
 
-    // 웹에서만 동작하므로 조건부 처리
-    if (kIsWeb) {
-      // 웹에서는 dart:html을 사용할 수 없으므로 이미지 업로드 기능을 비활성화
-      // 실제 구현에서는 image_picker 패키지를 사용해야 함
+    try {
+      // 권한 요청
+      if (!kIsWeb) {
+        final status = await Permission.camera.request();
+        if (status.isDenied) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지 업로드 기능은 모바일에서만 사용 가능합니다.')),
+            const SnackBar(content: Text('카메라 권한이 필요합니다.')),
+          );
+          return;
+        }
+      }
+
+      // 이미지 선택 다이얼로그
+      final ImageSource? source = await showDialog<ImageSource>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('이미지 선택'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('카메라로 촬영'),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('갤러리에서 선택'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
       );
-    } else {
-      // 모바일에서는 image_picker 패키지 사용
+
+      if (source == null) return;
+
+      // 이미지 선택
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        setState(() {
+          _uploadedImages.add(image.path);
+        });
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지 업로드 기능을 구현하려면 image_picker 패키지를 추가하세요.')),
+        SnackBar(content: Text('이미지 업로드 중 오류가 발생했습니다: $e')),
       );
     }
   }
@@ -240,22 +430,10 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   }
 
   Future<void> _startRecording() async {
-    // Flutter에서는 speech_to_text 패키지를 사용
-    // 여기서는 시뮬레이션
-    setState(() {
-      _isRecording = true;
-      _recordingTime = 0;
-    });
-
-    // 시뮬레이션: 1초마다 녹음 시간 증가
-    while (_isRecording) {
-      await Future.delayed(const Duration(seconds: 1));
-      if (_isRecording) {
-        setState(() {
-          _recordingTime++;
-        });
-      }
-    }
+    // 음성 인식 기능은 현재 구현되지 않음
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('음성 인식 기능은 준비 중입니다.')),
+    );
   }
 
   void _stopRecording() {
@@ -369,9 +547,28 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                           borderRadius: BorderRadius.circular(24),
                                         ),
                                         child: Center(
-                                          child: Text(
+                                          child: Container(
+                                            width: 32,
+                                            height: 32,
+                                            child: Image.network(
                                             _currentEmoji,
-                                            style: const TextStyle(fontSize: 24),
+                                              fit: BoxFit.contain,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  width: 32,
+                                                  height: 32,
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.muted,
+                                                    borderRadius: BorderRadius.circular(16),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.error,
+                                                    size: 20,
+                                                    color: Colors.grey,
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                           ),
                                         ),
                                       ),
