@@ -16,6 +16,7 @@ passlib[bcrypt]==1.7.4
 openai-whisper==20231117
 torch
 numpy
+transformers
 
 # 유틸리티 의존성
 python-dotenv==1.0.0

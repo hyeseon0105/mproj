@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from backend.routes.auth import router as auth_router
-from backend.post.routes.posts import router as posts_router
-from backend.post.database.mongodb import init_mongodb
+from routes.auth import router as auth_router
+from post.routes.posts import router as posts_router
+from post.database.mongodb import init_mongodb
 import os
-from backend.routes.asr import router as asr_router
+# from routes.asr import router as asr_router
 
 app = FastAPI(
     title="AI Mini Implementation - 통합 API",
@@ -29,7 +29,7 @@ if os.path.exists("uploads"):
 # 라우터 등록
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(posts_router, prefix="/api", tags=["posts"])
-app.include_router(asr_router, prefix="/api", tags=["asr"])
+# app.include_router(asr_router, prefix="/api", tags=["asr"])
 
 # 애플리케이션 시작 시 실행
 @app.on_event("startup")

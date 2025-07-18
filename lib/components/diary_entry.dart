@@ -6,10 +6,8 @@ import '../theme.dart';
 import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
-import 'dart:html' as html; // 웹 이미지 업로드용 추가
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter/foundation.dart';
+// dart:html은 웹에서만 사용 가능하므로 조건부 import
 
 typedef SaveDiaryCallback = void Function(String entry, Emotion emotion, List<String>? images);
 
@@ -53,10 +51,6 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
 
-  stt.SpeechToText? _speech;
-  bool _isSpeechAvailable = false;
-  List<int>? _recordedAudioBytes;
-
   // ImagePicker는 실제 앱에서 image_picker 패키지로 구현
 
   // 감정 체인 데이터
@@ -71,11 +65,17 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
 
   // 감정에 따른 이모티콘 매핑
   final Map<Emotion, String> emotionEmojis = {
-    Emotion.fruit: '🍎',
-    Emotion.animal: '🐶',
-    Emotion.shape: '⭐',
-    Emotion.weather: '☀️',
+    Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
+    Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
+    Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
+    Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
   };
+
+  // 사용자 설정 카테고리에서 이모지 가져오기
+  String _getUserEmoticon(Emotion emotion) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    return appState.getUserEmoticon(emotion);
+  }
 
   @override
   void initState() {
@@ -95,9 +95,6 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       curve: Curves.easeInOut,
     );
 
-    _speech = stt.SpeechToText();
-    _initSpeech();
-
     // Generate AI message for existing entry when component mounts
     if (widget.existingEntry?.entry != null && _aiMessage.isEmpty) {
       final emotion = _analyzeEmotion(widget.existingEntry!.entry!);
@@ -107,11 +104,6 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       });
       _fadeAnimationController.forward();
     }
-  }
-
-  Future<void> _initSpeech() async {
-    _isSpeechAvailable = await _speech!.initialize();
-    setState(() {});
   }
 
   @override
@@ -178,44 +170,29 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     if (_entryController.text.trim().isEmpty) {
       return;
     }
+    
     setState(() {
       _isAnalyzing = true;
     });
+    
+    // Simulate AI analysis delay
     await Future.delayed(const Duration(milliseconds: 1500));
+    
     final emotion = _analyzeEmotion(_entryController.text);
+    
+    // Generate comfort message and update emoji
     final comfortMessage = _generateComfortMessage(emotion, _entryController.text);
     setState(() {
       _aiMessage = comfortMessage;
-      _currentEmoji = emotionEmojis[emotion]!;
+      _currentEmoji = _getUserEmoticon(emotion); // 새로 분석된 감정에 따라 이모티콘 업데이트
       _isAnalyzing = false;
       _isSaved = true;
     });
+    
     _fadeAnimationController.forward();
+    
     // 일기 데이터 저장 (이미지 포함)
-    await _saveDiaryToBackend(_entryController.text, emotion, _uploadedImages.isNotEmpty ? _uploadedImages : null);
     widget.onSave(_entryController.text, emotion, _uploadedImages.isNotEmpty ? _uploadedImages : null);
-  }
-
-  Future<void> _saveDiaryToBackend(String entry, Emotion emotion, List<String>? images) async {
-    try {
-      final response = await http.post(
-        Uri.parse('http://localhost:8000/api/posts/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'title': '일기',
-          'content': entry,
-          'status': 'published',
-          'images': images ?? [],
-        }),
-      );
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // 저장 성공
-      } else {
-        // 오류 처리
-      }
-    } catch (e) {
-      // 오류 처리
-    }
   }
 
   String _formatDate(String dateStr) {
@@ -247,24 +224,19 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   Future<void> _handleImageUpload() async {
     if (_uploadedImages.length >= 3) return;
 
-    // 웹에서만 동작
-    final uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = 'image/*';
-    uploadInput.click();
-
-    uploadInput.onChange.listen((event) {
-      final files = uploadInput.files;
-      if (files != null && files.isNotEmpty) {
-        final file = files[0];
-        final reader = html.FileReader();
-        reader.readAsDataUrl(file);
-        reader.onLoadEnd.listen((event) {
-          setState(() {
-            _uploadedImages.add(reader.result as String);
-          });
-        });
-      }
-    });
+    // 웹에서만 동작하므로 조건부 처리
+    if (kIsWeb) {
+      // 웹에서는 dart:html을 사용할 수 없으므로 이미지 업로드 기능을 비활성화
+      // 실제 구현에서는 image_picker 패키지를 사용해야 함
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이미지 업로드 기능은 모바일에서만 사용 가능합니다.')),
+      );
+    } else {
+      // 모바일에서는 image_picker 패키지 사용
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이미지 업로드 기능을 구현하려면 image_picker 패키지를 추가하세요.')),
+      );
+    }
   }
 
   void _handleImageDelete(int index) {
@@ -274,55 +246,29 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   }
 
   Future<void> _startRecording() async {
-    if (!_isSpeechAvailable) {
-      await _initSpeech();
-    }
+    // Flutter에서는 speech_to_text 패키지를 사용
+    // 여기서는 시뮬레이션
     setState(() {
       _isRecording = true;
       _recordingTime = 0;
-      _recognizedText = '';
-      _recordedAudioBytes = null;
     });
-    _speech!.listen(
-      onResult: (result) {
+
+    // 시뮬레이션: 1초마다 녹음 시간 증가
+    while (_isRecording) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (_isRecording) {
         setState(() {
-          _recognizedText = result.recognizedWords;
-          _entryController.text = _recognizedText;
-          _hasText = _entryController.text.trim().isNotEmpty;
+          _recordingTime++;
         });
-      },
-      listenFor: const Duration(seconds: 10),
-      pauseFor: const Duration(seconds: 2),
-      partialResults: true,
-      localeId: 'ko_KR',
-      onSoundLevelChange: null,
-      cancelOnError: true,
-      listenMode: stt.ListenMode.confirmation,
-    );
-    // 타이머: 10초 후 자동 종료
-    await Future.delayed(const Duration(seconds: 10));
-    await _stopRecording();
+      }
+    }
   }
 
-  Future<void> _stopRecording() async {
-    await _speech?.stop();
+  void _stopRecording() {
     setState(() {
       _isRecording = false;
       _recordingTime = 0;
     });
-    // (선택) 오디오 파일 저장 및 Whisper 업로드
-    // 실제로는 speech_to_text에서 오디오 파일을 직접 제공하지 않으므로,
-    // 웹/모바일에서 별도 녹음 패키지(flutter_sound 등)와 조합 필요
-    // 여기서는 텍스트만 Whisper로 업로드(추후 확장 가능)
-    await _sendTextToWhisper(_entryController.text);
-  }
-
-  Future<void> _sendTextToWhisper(String text) async {
-    // 실제로는 오디오 파일 업로드가 더 정확하지만,
-    // 데모로 텍스트를 Whisper에 전송(Whisper는 오디오만 지원, 실제 오디오 업로드는 별도 구현 필요)
-    // 이 부분은 오디오 녹음 패키지와 연동 시 확장 가능
-    // 현재는 speech_to_text 결과만 사용
-    // TODO: 오디오 파일 업로드 구현 시 아래 코드 수정
   }
 
   void _handleRecordingToggle() {
@@ -343,6 +289,11 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
             final lineHeight = 32.0;
             final availableHeight = constraints.maxHeight - 32; // 패딩 고려
             final lineCount = (availableHeight / lineHeight).floor();
+            
+            // 음수 값 방지
+            if (lineCount <= 0) {
+              return const SizedBox.shrink();
+            }
             
             return Column(
               children: List.generate(lineCount, (index) => 
@@ -369,42 +320,42 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 896), // max-w-4xl
-            child: Column(
-              children: [
-                // Back Button
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: AppButton(
-                      onPressed: widget.onBack,
-                      variant: ButtonVariant.ghost,
-                      size: ButtonSize.icon,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          color: AppColors.calendarDateHover,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 896), // max-w-4xl
+                child: Column(
+                  children: [
+                    // Back Button
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16, top: 20),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: AppButton(
+                          onPressed: widget.onBack,
+                          variant: ButtonVariant.ghost,
+                          size: ButtonSize.icon,
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: AppColors.calendarDateHover,
+                            ),
+                            child: const Icon(Icons.arrow_back, size: 20),
+                          ),
                         ),
-                        child: const Icon(Icons.arrow_back, size: 20),
                       ),
                     ),
-                  ),
-                ),
-                
-                // Main Content
-                Expanded(
-                  child: Center(
-                    child: ConstrainedBox(
+                    
+                    // Main Content
+                    ConstrainedBox(
                       constraints: const BoxConstraints(
                         maxWidth: 448, // max-w-md
-                        maxHeight: 800, // 세로 길이 제한 추가
+                        minHeight: 600, // 최소 높이 설정
                       ),
                       child: AppCard(
                         backgroundColor: AppColors.calendarBg,
@@ -429,9 +380,17 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                           borderRadius: BorderRadius.circular(24),
                                         ),
                                         child: Center(
-                                          child: Text(
+                                          child: Image.network(
                                             _currentEmoji,
-                                            style: const TextStyle(fontSize: 24),
+                                            width: 32,
+                                            height: 32,
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Text(
+                                                '😊',
+                                                style: const TextStyle(fontSize: 24),
+                                              );
+                                            },
                                           ),
                                         ),
                                       ),
@@ -597,56 +556,55 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                             ],
 
                             // Diary Content
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: AppColors.calendarBg,
-                                ),
-                                child: Stack(
-                                  children: [
-                                    // Notebook lines
-                                    _buildNotebookLines(),
-                                    
-                                    // Writing Area
-                                    Positioned.fill(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16),
-                                        child: TextField(
-                                          controller: _entryController,
-                                          maxLines: null,
-                                          expands: true,
-                                          textAlignVertical: TextAlignVertical.top,
-                                          style: TextStyle(
-                                            color: AppColors.foreground,
-                                            height: 2.0,
-                                            fontSize: 16,
-                                          ),
-                                          decoration: InputDecoration(
-                                            hintText: widget.existingEntry?.entry != null 
-                                                ? "일기를 수정해보세요..." 
-                                                : "오늘의 이야기를 작성해보세요...",
-                                            hintStyle: TextStyle(
-                                              color: AppColors.mutedForeground.withOpacity(0.7),
-                                            ),
-                                            border: InputBorder.none,
-                                            enabledBorder: InputBorder.none,
-                                            focusedBorder: InputBorder.none,
-                                            errorBorder: InputBorder.none,
-                                            focusedErrorBorder: InputBorder.none,
-                                            disabledBorder: InputBorder.none,
-                                            contentPadding: EdgeInsets.zero,
-                                            filled: false,
-                                          ),
-                                          onChanged: (text) {
-                                            setState(() {
-                                              _hasText = text.trim().isNotEmpty;
-                                            });
-                                          },
+                            Container(
+                              height: 400, // 고정 높이 설정
+                              decoration: BoxDecoration(
+                                color: AppColors.calendarBg,
+                              ),
+                              child: Stack(
+                                children: [
+                                  // Notebook lines
+                                  _buildNotebookLines(),
+                                  
+                                  // Writing Area
+                                  Positioned.fill(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: TextField(
+                                        controller: _entryController,
+                                        maxLines: null,
+                                        expands: true,
+                                        textAlignVertical: TextAlignVertical.top,
+                                        style: TextStyle(
+                                          color: AppColors.foreground,
+                                          height: 2.0,
+                                          fontSize: 16,
                                         ),
+                                        decoration: InputDecoration(
+                                          hintText: widget.existingEntry?.entry != null 
+                                              ? "일기를 수정해보세요..." 
+                                              : "오늘의 이야기를 작성해보세요...",
+                                          hintStyle: TextStyle(
+                                            color: AppColors.mutedForeground.withOpacity(0.7),
+                                          ),
+                                          border: InputBorder.none,
+                                          enabledBorder: InputBorder.none,
+                                          focusedBorder: InputBorder.none,
+                                          errorBorder: InputBorder.none,
+                                          focusedErrorBorder: InputBorder.none,
+                                          disabledBorder: InputBorder.none,
+                                          contentPadding: EdgeInsets.zero,
+                                          filled: false,
+                                        ),
+                                        onChanged: (text) {
+                                          setState(() {
+                                            _hasText = text.trim().isNotEmpty;
+                                          });
+                                        },
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                             
@@ -805,9 +763,9 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

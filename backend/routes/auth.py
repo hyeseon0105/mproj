@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from backend.database import users, get_next_user_id
-from backend.auth_utils import get_password_hash, verify_password, create_access_token, verify_token
+from database import users, get_next_user_id
+from auth_utils import get_password_hash, verify_password, create_access_token, verify_token
 from datetime import datetime
 from bson import ObjectId
 from typing import Optional
