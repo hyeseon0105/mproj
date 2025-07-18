@@ -204,7 +204,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                 child: Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: Material(
-                    color: AppColors.calendarBg,
+                    color: AppColors.background, // 날짜 셀 배경색을 전체 앱 배경색과 같게 설정
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
@@ -296,68 +296,6 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   }
 
   Widget _renderFortuneSection() {
-    if (widget.userSubscription == 'normal') {
-      return AppCard(
-        backgroundColor: AppColors.calendarBg,
-        borderRadius: BorderRadius.circular(24),
-        padding: const EdgeInsets.all(24),
-        margin: const EdgeInsets.only(top: 24),
-        child: Column(
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primaryGradientStart, AppColors.primaryGradientEnd],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Text('🔮', style: TextStyle(fontSize: 24)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '오늘의 운세',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.foreground,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '프리미엄 구독하고 매일 개인 맞춤 운세를 확인해보세요!',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.mutedForeground,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: AppButton(
-                onPressed: _handlePremiumSubscription,
-                text: '프리미엄 구독하기',
-                variant: ButtonVariant.primary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     if (widget.userBirthday == null) {
       return AppCard(
         backgroundColor: AppColors.calendarBg,
