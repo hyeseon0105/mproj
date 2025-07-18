@@ -28,15 +28,46 @@ class _AuthPageState extends State<AuthPage> {
 
   Future<void> handleLogin() async {
     setState(() { errorMessage = ''; });
+    
+    // 서버 URL 찾기 (여러 IP 주소 시도)
+    String? serverUrl;
+    final testUrls = [
+      'http://10.0.2.2:8000',
+      'http://10.0.3.2:8000',
+      'http://localhost:8000',
+    ];
+    
+    for (String url in testUrls) {
+      try {
+        final testResponse = await http.get(
+          Uri.parse('$url/health'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(const Duration(seconds: 3));
+        
+        if (testResponse.statusCode == 200) {
+          serverUrl = url;
+          break;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    
+    if (serverUrl == null) {
+      setState(() { errorMessage = '서버 연결 실패: 모든 IP 주소에서 연결할 수 없습니다'; });
+      return;
+    }
+    
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:8000/api/auth/login'),
+        Uri.parse('$serverUrl/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
           'password': password,
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
+      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         // JWT 토큰과 사용자 정보 저장 (AppState에 저장)
@@ -48,22 +79,53 @@ class _AuthPageState extends State<AuthPage> {
         setState(() { errorMessage = data['detail'] ?? '로그인 실패'; });
       }
     } catch (e) {
-      setState(() { errorMessage = '서버 연결 실패'; });
+      setState(() { errorMessage = '서버 연결 실패: $e'; });
     }
   }
 
   Future<void> handleRegister() async {
     setState(() { errorMessage = ''; });
+    
+    // 서버 URL 찾기 (여러 IP 주소 시도)
+    String? serverUrl;
+    final testUrls = [
+      'http://10.0.2.2:8000',
+      'http://10.0.3.2:8000',
+      'http://localhost:8000',
+    ];
+    
+    for (String url in testUrls) {
+      try {
+        final testResponse = await http.get(
+          Uri.parse('$url/health'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(const Duration(seconds: 3));
+        
+        if (testResponse.statusCode == 200) {
+          serverUrl = url;
+          break;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    
+    if (serverUrl == null) {
+      setState(() { errorMessage = '서버 연결 실패: 모든 IP 주소에서 연결할 수 없습니다'; });
+      return;
+    }
+    
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:8000/api/auth/register'),
+        Uri.parse('$serverUrl/api/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': name,
           'email': email,
           'password': password,
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
+      
       if (response.statusCode == 200) {
         // 회원가입 성공 시 자동 로그인 처리
         await handleLogin();
@@ -72,7 +134,7 @@ class _AuthPageState extends State<AuthPage> {
         setState(() { errorMessage = data['detail'] ?? '회원가입 실패'; });
       }
     } catch (e) {
-      setState(() { errorMessage = '서버 연결 실패'; });
+      setState(() { errorMessage = '서버 연결 실패: $e'; });
     }
   }
 

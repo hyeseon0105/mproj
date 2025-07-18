@@ -6,10 +6,9 @@ import '../theme.dart';
 import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
-import 'dart:html' as html; // 웹 이미지 업로드용 추가
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
+// import 'package:speech_to_text/speech_to_text.dart' as stt;  // 일시적으로 비활성화
 
 typedef SaveDiaryCallback = void Function(String entry, Emotion emotion, List<String>? images);
 
@@ -45,7 +44,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   String _aiMessage = '';
   String _currentEmoji = '';
   List<String> _uploadedImages = [];
-  bool _isRecording = false;
+  // bool _isRecording = false;  // 일시적으로 비활성화
   int _recordingTime = 0;
   String _recognizedText = '';
   bool _hasText = false; // 텍스트 입력 여부를 추적하는 변수 추가
@@ -53,9 +52,9 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
 
-  stt.SpeechToText? _speech;
-  bool _isSpeechAvailable = false;
-  List<int>? _recordedAudioBytes;
+  // stt.SpeechToText? _speech;  // 일시적으로 비활성화
+  // bool _isSpeechAvailable = false;  // 일시적으로 비활성화
+  // List<int>? _recordedAudioBytes;  // 일시적으로 비활성화
 
   // ImagePicker는 실제 앱에서 image_picker 패키지로 구현
 
@@ -95,8 +94,8 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       curve: Curves.easeInOut,
     );
 
-    _speech = stt.SpeechToText();
-    _initSpeech();
+    // _speech = stt.SpeechToText();  // 일시적으로 비활성화
+    // _initSpeech();  // 일시적으로 비활성화
 
     // Generate AI message for existing entry when component mounts
     if (widget.existingEntry?.entry != null && _aiMessage.isEmpty) {
@@ -109,10 +108,10 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _initSpeech() async {
-    _isSpeechAvailable = await _speech!.initialize();
-    setState(() {});
-  }
+  // Future<void> _initSpeech() async {  // 일시적으로 비활성화
+  //   _isSpeechAvailable = await _speech!.initialize();
+  //   setState(() {});
+  // }
 
   @override
   void dispose() {
@@ -198,8 +197,43 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
 
   Future<void> _saveDiaryToBackend(String entry, Emotion emotion, List<String>? images) async {
     try {
+      // 먼저 서버 연결 테스트 (여러 IP 주소 시도)
+      http.Response? testResponse;
+      String serverUrl = '';
+      
+      // 에뮬레이터용 IP 주소들 시도
+      final testUrls = [
+        'http://10.0.2.2:8000/health',
+        'http://10.0.3.2:8000/health',
+        'http://localhost:8000/health',
+      ];
+      
+      for (String url in testUrls) {
+        try {
+          testResponse = await http.get(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+          ).timeout(const Duration(seconds: 3));
+          
+          if (testResponse.statusCode == 200) {
+            serverUrl = url.replaceAll('/health', '');
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      if (testResponse?.statusCode != 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('서버 연결 실패: 모든 IP 주소에서 연결할 수 없습니다')),
+        );
+        return;
+      }
+
+      // 일기 저장
       final response = await http.post(
-        Uri.parse('http://localhost:8000/api/posts/'),
+        Uri.parse('$serverUrl/api/posts/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'title': '일기',
@@ -207,14 +241,24 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
           'status': 'published',
           'images': images ?? [],
         }),
-      );
+      ).timeout(const Duration(seconds: 10));
+      
       if (response.statusCode == 200 || response.statusCode == 201) {
         // 저장 성공
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('일기가 성공적으로 저장되었습니다!')),
+        );
       } else {
         // 오류 처리
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('저장 실패: ${response.statusCode} - ${response.body}')),
+        );
       }
     } catch (e) {
       // 오류 처리
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('서버 연결 실패: $e')),
+      );
     }
   }
 
@@ -247,24 +291,10 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   Future<void> _handleImageUpload() async {
     if (_uploadedImages.length >= 3) return;
 
-    // 웹에서만 동작
-    final uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = 'image/*';
-    uploadInput.click();
-
-    uploadInput.onChange.listen((event) {
-      final files = uploadInput.files;
-      if (files != null && files.isNotEmpty) {
-        final file = files[0];
-        final reader = html.FileReader();
-        reader.readAsDataUrl(file);
-        reader.onLoadEnd.listen((event) {
-          setState(() {
-            _uploadedImages.add(reader.result as String);
-          });
-        });
-      }
-    });
+    // 현재는 이미지 업로드 기능을 비활성화
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('이미지 업로드 기능은 현재 개발 중입니다.')),
+    );
   }
 
   void _handleImageDelete(int index) {
@@ -273,65 +303,65 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     });
   }
 
-  Future<void> _startRecording() async {
-    if (!_isSpeechAvailable) {
-      await _initSpeech();
-    }
-    setState(() {
-      _isRecording = true;
-      _recordingTime = 0;
-      _recognizedText = '';
-      _recordedAudioBytes = null;
-    });
-    _speech!.listen(
-      onResult: (result) {
-        setState(() {
-          _recognizedText = result.recognizedWords;
-          _entryController.text = _recognizedText;
-          _hasText = _entryController.text.trim().isNotEmpty;
-        });
-      },
-      listenFor: const Duration(seconds: 10),
-      pauseFor: const Duration(seconds: 2),
-      partialResults: true,
-      localeId: 'ko_KR',
-      onSoundLevelChange: null,
-      cancelOnError: true,
-      listenMode: stt.ListenMode.confirmation,
-    );
-    // 타이머: 10초 후 자동 종료
-    await Future.delayed(const Duration(seconds: 10));
-    await _stopRecording();
-  }
+  // Future<void> _startRecording() async {  // 일시적으로 비활성화
+  //   if (!_isSpeechAvailable) {
+  //     await _initSpeech();
+  //   }
+  //   setState(() {
+  //     _isRecording = true;
+  //     _recordingTime = 0;
+  //     _recognizedText = '';
+  //     _recordedAudioBytes = null;
+  //   });
+  //   _speech!.listen(
+  //     onResult: (result) {
+  //       setState(() {
+  //         _recognizedText = result.recognizedWords;
+  //         _entryController.text = _recognizedText;
+  //         _hasText = _entryController.text.trim().isNotEmpty;
+  //       });
+  //     },
+  //     listenFor: const Duration(seconds: 10),
+  //     pauseFor: const Duration(seconds: 2),
+  //     partialResults: true,
+  //     localeId: 'ko_KR',
+  //     onSoundLevelChange: null,
+  //     cancelOnError: true,
+  //     listenMode: stt.ListenMode.confirmation,
+  //   );
+  //   // 타이머: 10초 후 자동 종료
+  //   await Future.delayed(const Duration(seconds: 10));
+  //   await _stopRecording();
+  // }
 
-  Future<void> _stopRecording() async {
-    await _speech?.stop();
-    setState(() {
-      _isRecording = false;
-      _recordingTime = 0;
-    });
-    // (선택) 오디오 파일 저장 및 Whisper 업로드
-    // 실제로는 speech_to_text에서 오디오 파일을 직접 제공하지 않으므로,
-    // 웹/모바일에서 별도 녹음 패키지(flutter_sound 등)와 조합 필요
-    // 여기서는 텍스트만 Whisper로 업로드(추후 확장 가능)
-    await _sendTextToWhisper(_entryController.text);
-  }
+  // Future<void> _stopRecording() async {  // 일시적으로 비활성화
+  //   await _speech?.stop();
+  //   setState(() {
+  //     _isRecording = false;
+  //     _recordingTime = 0;
+  //   });
+  //   // (선택) 오디오 파일 저장 및 Whisper 업로드
+  //   // 실제로는 speech_to_text에서 오디오 파일을 직접 제공하지 않으므로,
+  //   // 웹/모바일에서 별도 녹음 패키지(flutter_sound 등)와 조합 필요
+  //   // 여기서는 텍스트만 Whisper로 업로드(추후 확장 가능)
+  //   await _sendTextToWhisper(_entryController.text);
+  // }
 
-  Future<void> _sendTextToWhisper(String text) async {
-    // 실제로는 오디오 파일 업로드가 더 정확하지만,
-    // 데모로 텍스트를 Whisper에 전송(Whisper는 오디오만 지원, 실제 오디오 업로드는 별도 구현 필요)
-    // 이 부분은 오디오 녹음 패키지와 연동 시 확장 가능
-    // 현재는 speech_to_text 결과만 사용
-    // TODO: 오디오 파일 업로드 구현 시 아래 코드 수정
-  }
+  // Future<void> _sendTextToWhisper(String text) async {  // 일시적으로 비활성화
+  //   // 실제로는 오디오 파일 업로드가 더 정확하지만,
+  //   // 데모로 텍스트를 Whisper에 전송(Whisper는 오디오만 지원, 실제 오디오 업로드는 별도 구현 필요)
+  //   // 이 부분은 오디오 녹음 패키지와 연동 시 확장 가능
+  //   // 현재는 speech_to_text 결과만 사용
+  //   // TODO: 오디오 파일 업로드 구현 시 아래 코드 수정
+  // }
 
-  void _handleRecordingToggle() {
-    if (_isRecording) {
-      _stopRecording();
-    } else {
-      _startRecording();
-    }
-  }
+  // void _handleRecordingToggle() {  // 일시적으로 비활성화
+  //   if (_isRecording) {
+  //     _stopRecording();
+  //   } else {
+  //     _startRecording();
+  //   }
+  // }
 
   Widget _buildNotebookLines() {
     return Positioned.fill(
@@ -463,53 +493,53 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    // 타이머 (녹음 중일 때만)
-                                    if (_isRecording) ...[
-                                      Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.red.withOpacity(0.2)),
-                                        ),
-                                        child: Text(
-                                          '${_recordingTime ~/ 60}:${(_recordingTime % 60).toString().padLeft(2, '0')}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.red,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                    // 마이크 버튼
-                                    AppButton(
-                                      onPressed: _handleRecordingToggle,
-                                      variant: ButtonVariant.ghost,
-                                      size: ButtonSize.icon,
-                                      child: Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(20),
-                                          color: _isRecording 
-                                              ? Colors.red
-                                              : Colors.red.withOpacity(0.1),
-                                          border: Border.all(
-                                            color: Colors.red.withOpacity(0.2),
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.mic,
-                                            size: 20,
-                                            color: _isRecording ? Colors.white : Colors.red,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                    // 타이머 (녹음 중일 때만) - 일시적으로 비활성화
+                                    // if (_isRecording) ...[
+                                    //   Container(
+                                    //     margin: const EdgeInsets.only(right: 8),
+                                    //     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    //     decoration: BoxDecoration(
+                                    //       color: Colors.red.withOpacity(0.1),
+                                    //       borderRadius: BorderRadius.circular(12),
+                                    //       border: Border.all(color: Colors.red.withOpacity(0.2)),
+                                    //     ),
+                                    //     child: Text(
+                                    //       '${_recordingTime ~/ 60}:${(_recordingTime % 60).toString().padLeft(2, '0')}',
+                                    //       style: TextStyle(
+                                    //         fontSize: 12,
+                                    //         fontWeight: FontWeight.w500,
+                                    //         color: Colors.red,
+                                    //       ),
+                                    //     ),
+                                    //   ),
+                                    // ],
+                                    // 마이크 버튼 (일시적으로 비활성화)
+                                    // AppButton(
+                                    //   onPressed: _handleRecordingToggle,
+                                    //   variant: ButtonVariant.ghost,
+                                    //   size: ButtonSize.icon,
+                                    //   child: Container(
+                                    //     width: 40,
+                                    //     height: 40,
+                                    //     decoration: BoxDecoration(
+                                    //       borderRadius: BorderRadius.circular(20),
+                                    //       color: _isRecording 
+                                    //           ? Colors.red
+                                    //           : Colors.red.withOpacity(0.1),
+                                    //       border: Border.all(
+                                    //         color: Colors.red.withOpacity(0.2),
+                                    //         width: 2,
+                                    //       ),
+                                    //     ),
+                                    //     child: Center(
+                                    //       child: Icon(
+                                    //         Icons.mic,
+                                    //         size: 20,
+                                    //         color: _isRecording ? Colors.white : Colors.red,
+                                    //       ),
+                                    //     ),
+                                    //   ),
+                                    // ),
                                     const SizedBox(width: 8),
                                     // 업로드 버튼
                                     if (_uploadedImages.length < 3)
