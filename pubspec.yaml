@@ -10,17 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.0.0
-  http: ^1.2.1
-  cupertino_icons: ^1.0.8
+  http: ^1.1.0
+  cupertino_icons: ^1.0.2
   shared_preferences: ^2.2.2
-  # speech_to_text: ^6.6.0  # 모바일에서 문제가 있어서 임시로 비활성화
-  crypto: ^3.0.3
-  # webview_flutter: ^2.8.0  # WebView 기반 결제용 - Android 설정 문제로 임시 비활성화
-  url_launcher: ^6.2.1
-  image_picker: ^1.0.4  # 이미지 선택/촬영용
-  permission_handler: ^11.0.1  # 권한 처리용
-  camera: ^0.10.5+5  # 카메라 접근용
-  qr_flutter: ^4.0.0 # QR 코드 패키지
 
 dev_dependencies:
   flutter_test:

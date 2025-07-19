@@ -10,11 +10,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => AppState(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false, // 디버그 라벨 제거
-        home: const IndexPage(),
-        scaffoldMessengerKey: GlobalKey<ScaffoldMessengerState>(),
-      ),
+      child: const IndexPage(), // 직접 IndexPage를 반환
     );
   }
 } 

@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
+import '../services/diary_service.dart'; // Added import for DiaryService
 
 class DiaryCalendar extends StatefulWidget {
   final Function(String)? onDateSelect;
@@ -35,10 +36,10 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   late Map<String, EmotionData> emotionData;
 
   final Map<Emotion, String> emotionEmojis = {
-    Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
-    Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
-    Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
-    Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
+    Emotion.fruit: '🍎',
+    Emotion.animal: '🐶',
+    Emotion.shape: '⭐',
+    Emotion.weather: '☀️',
   };
 
   final Map<Emotion, Color> emotionColors = {
@@ -99,16 +100,40 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     return '${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
   }
 
-  void _handleDateClick(int day) {
+  void _handleDateClick(int day) async {
     final dateKey = _getDateKey(day);
     print('Calendar date clicked: $dateKey');
     
-    if (widget.onDateSelect != null) {
-      widget.onDateSelect!(dateKey);
-    } else {
-      // Provider를 사용한 fallback
-      final appState = Provider.of<AppState>(context, listen: false);
-      appState.handleDateSelect(dateKey);
+    try {
+      final diaryService = DiaryService();
+      final diaryData = await diaryService.getDiaryByDate(dateKey);
+      
+      if (diaryData != null) {
+        // 일기가 있는 경우
+        if (widget.onDateSelect != null) {
+          widget.onDateSelect!(dateKey);
+        } else {
+          final appState = Provider.of<AppState>(context, listen: false);
+          appState.handleDateSelect(dateKey);
+        }
+      } else {
+        // 일기가 없는 경우 - 새 일기 작성 모드로
+        if (widget.onDateSelect != null) {
+          widget.onDateSelect!(dateKey);
+        } else {
+          final appState = Provider.of<AppState>(context, listen: false);
+          appState.handleDateSelect(dateKey);
+        }
+      }
+    } catch (e) {
+      print('일기 조회 중 오류 발생: $e');
+      // 에러가 발생해도 일기 작성 화면으로 이동
+      if (widget.onDateSelect != null) {
+        widget.onDateSelect!(dateKey);
+      } else {
+        final appState = Provider.of<AppState>(context, listen: false);
+        appState.handleDateSelect(dateKey);
+      }
     }
   }
 
@@ -137,33 +162,19 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     // 여기서는 시뮬레이션으로 처리
     try {
       // 실제 구현에서는 in_app_purchase 패키지 사용
-      if (mounted) {
-        // 안전한 ScaffoldMessenger 사용
-        final messenger = ScaffoldMessenger.of(context);
-        if (messenger.mounted) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('결제 완료! 프리미엄 구독이 완료되었습니다.'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('결제 완료! 프리미엄 구독이 완료되었습니다.'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (error) {
-      if (mounted) {
-        // 안전한 ScaffoldMessenger 사용
-        final messenger = ScaffoldMessenger.of(context);
-        if (messenger.mounted) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('결제 중 오류가 발생했습니다. 다시 시도해 주세요.'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('결제 중 오류가 발생했습니다. 다시 시도해 주세요.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -177,13 +188,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
 
     // Empty cells for days before the first day of the month
     for (int i = 0; i < firstDayOfMonth; i++) {
-      days.add(Container(
-        height: 60, // 높이를 줄여서 레이아웃 문제 해결
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ));
+      days.add(const SizedBox(height: 90));
     }
 
     // Days of the month
@@ -195,8 +200,8 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                      DateTime.now().day == day;
 
       days.add(
-        Container(
-          height: 60, // 높이를 줄여서 레이아웃 문제 해결
+        SizedBox(
+          height: 90, // 셀 높이를 늘려서 이모지가 짤리지 않도록 함
           child: Stack(
             clipBehavior: Clip.none, // 이모지가 짤리지 않도록 설정
             children: [
@@ -204,7 +209,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                 child: Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: Material(
-                    color: AppColors.background, // 날짜 셀 배경색을 전체 앱 배경색과 같게 설정
+                    color: AppColors.calendarBg,
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
@@ -258,24 +263,10 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                               right: 0,
                               child: Center(
                                 child: Transform.translate(
-                                  offset: const Offset(0, -15), // 높이를 줄였으므로 오프셋도 조정
-                                  child: Builder(
-                                    builder: (context) {
-                                      final appState = Provider.of<AppState>(context, listen: false);
-                                      final userEmoticon = appState.getUserEmoticon(dayData.emotion);
-                                      return Image.network(
-                                        userEmoticon,
-                                        width: 24, // 이모지 크기 조정
-                                        height: 24,
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Text(
-                                            '😊',
-                                            style: TextStyle(fontSize: 12),
-                                          );
-                                        },
-                                      );
-                                    },
+                                  offset: const Offset(0, -20),
+                                  child: Text(
+                                    dayData.emoji,
+                                    style: const TextStyle(fontSize: 14),
                                   ),
                                 ),
                               ),
@@ -296,6 +287,68 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   }
 
   Widget _renderFortuneSection() {
+    if (widget.userSubscription == 'normal') {
+      return AppCard(
+        backgroundColor: AppColors.calendarBg,
+        borderRadius: BorderRadius.circular(24),
+        padding: const EdgeInsets.all(24),
+        margin: const EdgeInsets.only(top: 24),
+        child: Column(
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primaryGradientStart, AppColors.primaryGradientEnd],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text('🔮', style: TextStyle(fontSize: 24)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '오늘의 운세',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.foreground,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '프리미엄 구독하고 매일 개인 맞춤 운세를 확인해보세요!',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.mutedForeground,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                onPressed: _handlePremiumSubscription,
+                text: '프리미엄 구독하기',
+                variant: ButtonVariant.primary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (widget.userBirthday == null) {
       return AppCard(
         backgroundColor: AppColors.calendarBg,
@@ -456,104 +509,144 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   Widget build(BuildContext context) {
     final year = currentDate.year;
     final month = currentDate.month;
-    final appState = Provider.of<AppState>(context);
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Container(
-          color: AppColors.background,
-          padding: const EdgeInsets.all(16),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 448), // max-w-md
-              child: Column(
+    return Container(
+      constraints: const BoxConstraints(minHeight: double.infinity),
+      color: AppColors.background,
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 448), // max-w-md
+          child: Column(
+            children: [
+              // Header with Logo and Settings
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Header with Logo and Settings
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Logo
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16), // 원하는 만큼 조절 (예: 16)
-                        child: Container(
-                          width: 120,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                  // Logo
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16), // 원하는 만큼 조절 (예: 16)
+                    child: Container(
+                      height: 50,
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.contain,
                       ),
-                      // Settings Button
-                      IconButton(
-                        onPressed: widget.onSettingsClick ?? () {
-                          final appState = Provider.of<AppState>(context, listen: false);
-                          appState.handleSettingsClick();
-                        },
-                        icon: const Icon(Icons.settings, color: AppColors.foreground),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 24),
-                  // Calendar Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        onPressed: () => _navigateMonth('prev'),
-                        icon: const Icon(Icons.chevron_left, color: AppColors.foreground),
+                  // Settings Button
+                  AppButton(
+                    onPressed: widget.onSettingsClick,
+                    variant: ButtonVariant.ghost,
+                    size: ButtonSize.icon,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      Text(
-                        '${monthNames[month - 1]} $year',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.foreground,
-                          decoration: TextDecoration.none,
-                        ),
+                      child: Icon(
+                        Icons.settings,
+                        size: 20,
+                        color: AppColors.foreground,
                       ),
-                      IconButton(
-                        onPressed: () => _navigateMonth('next'),
-                        icon: const Icon(Icons.chevron_right, color: AppColors.foreground),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  // Day Headers
-                  Row(
-                    children: ['일', '월', '화', '수', '목', '금', '토'].map((day) => 
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            day,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.mutedForeground,
-                              decoration: TextDecoration.none,
-                            ),
-                          ),
-                        ),
-                      )
-                    ).toList(),
-                  ),
-                  const SizedBox(height: 8),
-                  // Calendar Grid
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 7,
-                    childAspectRatio: 1,
-                    children: _renderCalendarDays(),
-                  ),
-                  // Fortune Section
-                  _renderFortuneSection(),
                 ],
               ),
-            ),
+              const SizedBox(height: 24),
+
+              // Calendar Card
+              AppCard(
+                backgroundColor: AppColors.calendarBg,
+                borderRadius: BorderRadius.circular(24),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    // Month Navigation
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        AppButton(
+                          onPressed: () => _navigateMonth('prev'),
+                          variant: ButtonVariant.ghost,
+                          size: ButtonSize.icon,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.chevron_left, size: 16),
+                          ),
+                        ),
+                        Text(
+                          '$year.${month.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.foreground,
+                          ),
+                        ),
+                        AppButton(
+                          onPressed: () => _navigateMonth('next'),
+                          variant: ButtonVariant.ghost,
+                          size: ButtonSize.icon,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.chevron_right, size: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Day Headers
+                    GridView.count(
+                      crossAxisCount: 7,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: 1,
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                      children: [
+                        ...dayNames.map((day) => Container(
+                          height: 32,
+                          alignment: Alignment.center,
+                          child: Text(
+                            day,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.mutedForeground,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        )),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Calendar Grid
+                    GridView.count(
+                      crossAxisCount: 7,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: 1,
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                      children: _renderCalendarDays(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Today's Fortune Section
+              _renderFortuneSection(),
+            ],
           ),
         ),
       ),

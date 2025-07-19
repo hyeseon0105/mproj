@@ -7,8 +7,7 @@ import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:image_picker/image_picker.dart';
-
+import '../services/diary_service.dart';
 // dart:html은 웹에서만 사용 가능하므로 조건부 import
 
 typedef SaveDiaryCallback = void Function(String entry, Emotion emotion, List<String>? images);
@@ -52,7 +51,8 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
-  late Emotion _currentEmotion; // ← 이 줄 추가!
+
+  final _diaryService = DiaryService();
 
   // ImagePicker는 실제 앱에서 image_picker 패키지로 구현
 
@@ -68,35 +68,21 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
 
   // 감정에 따른 이모티콘 매핑
   final Map<Emotion, String> emotionEmojis = {
-    Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
-    Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
-    Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
-    Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
+    Emotion.fruit: '🍎',
+    Emotion.animal: '🐶',
+    Emotion.shape: '⭐',
+    Emotion.weather: '☀️',
   };
-
-  // 사용자 설정 카테고리에서 이모지 가져오기
-  String _getUserEmoticon(Emotion emotion) {
-    final appState = Provider.of<AppState>(context, listen: false);
-    return appState.getUserEmoticon(emotion);
-  }
 
   @override
   void initState() {
     super.initState();
+    _loadDiaryData();
     _entryController = TextEditingController(text: widget.existingEntry?.entry ?? '');
     _isSaved = widget.existingEntry?.entry != null;
-    if (widget.existingEntry?.emotion != null) {
-      _currentEmotion = widget.existingEntry!.emotion!;
-    } else if (widget.existingEntry?.entry != null) {
-      _currentEmotion = _analyzeEmotion(widget.existingEntry!.entry!);
-    } else {
-      // 여기서 AppState의 selectedEmoticonCategory를 기본값으로 사용
-      final appState = Provider.of<AppState>(context, listen: false);
-      _currentEmotion = appState.selectedEmoticonCategory;
-    }
-    _currentEmoji = _getUserEmoticon(_currentEmotion);
+    _currentEmoji = widget.existingEntry?.emoji ?? '';
     _uploadedImages = List.from(widget.existingEntry?.images ?? []);
-    _hasText = _entryController.text.trim().isNotEmpty;
+    _hasText = _entryController.text.trim().isNotEmpty; // 초기 텍스트 상태 설정
 
     _fadeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 500),
@@ -107,7 +93,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       curve: Curves.easeInOut,
     );
 
-    // AI 메시지는 기존 entry로만 생성(이모티콘, entry는 건드리지 않음)
+    // Generate AI message for existing entry when component mounts
     if (widget.existingEntry?.entry != null && _aiMessage.isEmpty) {
       final emotion = _analyzeEmotion(widget.existingEntry!.entry!);
       final comfortMessage = _generateComfortMessage(emotion, widget.existingEntry!.entry!);
@@ -115,6 +101,28 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
         _aiMessage = comfortMessage;
       });
       _fadeAnimationController.forward();
+    }
+  }
+
+  Future<void> _loadDiaryData() async {
+    try {
+      final diaryData = await _diaryService.getDiaryByDate(widget.selectedDate);
+      if (diaryData != null) {
+        setState(() {
+          _entryController.text = diaryData['content'];
+          _uploadedImages = List<String>.from(diaryData['images']);
+          _isSaved = true;
+          _hasText = true;
+          
+          // 감정 분석 및 메시지 생성
+          final emotion = _analyzeEmotion(diaryData['content']);
+          _aiMessage = _generateComfortMessage(emotion, diaryData['content']);
+          _currentEmoji = emotionEmojis[emotion] ?? '';
+          _fadeAnimationController.forward();
+        });
+      }
+    } catch (e) {
+      print('일기 데이터 로드 중 오류 발생: $e');
     }
   }
 
@@ -179,7 +187,6 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   }
 
   Future<void> _handleSave() async {
-    if (_isSaved) return; // 이미 저장된 경우 아무 동작도 하지 않음
     if (_entryController.text.trim().isEmpty) {
       return;
     }
@@ -188,24 +195,56 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       _isAnalyzing = true;
     });
     
-    // Simulate AI analysis delay
-    await Future.delayed(const Duration(milliseconds: 1500));
-    
-    final emotion = _analyzeEmotion(_entryController.text);
-    
-    // Generate comfort message and update emoji
-    final comfortMessage = _generateComfortMessage(emotion, _entryController.text);
-    setState(() {
-      _aiMessage = comfortMessage;
-      _currentEmoji = _getUserEmoticon(emotion); // 저장 시에만 이모티콘 변경
-      _isAnalyzing = false;
-      _isSaved = true;
-    });
-    
-    _fadeAnimationController.forward();
-    
-    // 일기 데이터 저장 (이미지 포함)
-    widget.onSave(_entryController.text, emotion, _uploadedImages.isNotEmpty ? _uploadedImages : null);
+    try {
+      // 감정 분석
+      final emotion = _analyzeEmotion(_entryController.text);
+      
+      // 일기 저장 API 호출
+      final postId = await _diaryService.createDiary(
+        content: _entryController.text,
+        emotion: emotion,
+        images: _uploadedImages.isNotEmpty ? _uploadedImages : null,
+      );
+      
+      // 위로의 메시지 생성
+      final comfortMessage = _generateComfortMessage(emotion, _entryController.text);
+      
+      setState(() {
+        _aiMessage = comfortMessage;
+        _currentEmoji = emotionEmojis[emotion]!;
+        _isAnalyzing = false;
+        _isSaved = true;
+      });
+      
+      _fadeAnimationController.forward();
+      
+      // 일기 데이터 저장 콜백 호출
+      widget.onSave(_entryController.text, emotion, _uploadedImages.isNotEmpty ? _uploadedImages : null);
+
+      // 성공 메시지 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('일기가 저장되었습니다'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      // 에러 처리
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('일기 저장에 실패했습니다: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   String _formatDate(String dateStr) {
@@ -235,12 +274,8 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   }
 
   Future<void> _handleImageUpload() async {
-    if (_uploadedImages.length >= 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('이미지는 최대 3장까지 업로드할 수 있습니다.')),
-      );
-      return;
-    }
+    if (_uploadedImages.length >= 3) return;
+
     // 웹에서만 동작하므로 조건부 처리
     if (kIsWeb) {
       // 웹에서는 dart:html을 사용할 수 없으므로 이미지 업로드 기능을 비활성화
@@ -307,11 +342,6 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
             final availableHeight = constraints.maxHeight - 32; // 패딩 고려
             final lineCount = (availableHeight / lineHeight).floor();
             
-            // 음수 값 방지
-            if (lineCount <= 0) {
-              return const SizedBox.shrink();
-            }
-            
             return Column(
               children: List.generate(lineCount, (index) => 
                 Container(
@@ -337,42 +367,42 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 896), // max-w-4xl
-                child: Column(
-                  children: [
-                    // Back Button
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16, top: 20),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: AppButton(
-                          onPressed: widget.onBack,
-                          variant: ButtonVariant.ghost,
-                          size: ButtonSize.icon,
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              color: AppColors.calendarDateHover,
-                            ),
-                            child: const Icon(Icons.arrow_back, size: 20),
-                          ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 896), // max-w-4xl
+            child: Column(
+              children: [
+                // Back Button
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16, top: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppButton(
+                      onPressed: widget.onBack,
+                      variant: ButtonVariant.ghost,
+                      size: ButtonSize.icon,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: AppColors.calendarDateHover,
                         ),
+                        child: const Icon(Icons.arrow_back, size: 20),
                       ),
                     ),
-                    
-                    // Main Content
-                    ConstrainedBox(
+                  ),
+                ),
+                
+                // Main Content
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
                       constraints: const BoxConstraints(
                         maxWidth: 448, // max-w-md
-                        minHeight: 600, // 최소 높이 설정
+                        maxHeight: 800, // 세로 길이 제한 추가
                       ),
                       child: AppCard(
                         backgroundColor: AppColors.calendarBg,
@@ -393,22 +423,13 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                         width: 48,
                                         height: 48,
                                         decoration: BoxDecoration(
-                                          color: AppColors.calendarBg, // 더 부드러운 배경색으로 변경
+                                          color: AppColors.emotionCalm,
                                           borderRadius: BorderRadius.circular(24),
                                         ),
                                         child: Center(
-                                          // 이모티콘 크기 키우기 (width: 56, height: 56)
-                                          child: Image.network(
+                                          child: Text(
                                             _currentEmoji,
-                                            width: 150,
-                                            height: 150,
-                                            fit: BoxFit.contain,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return Text(
-                                                '😊',
-                                                style: const TextStyle(fontSize: 56),
-                                              );
-                                            },
+                                            style: const TextStyle(fontSize: 24),
                                           ),
                                         ),
                                       ),
@@ -488,8 +509,8 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    // 업로드 버튼 (3장 미만 & 저장 전만 노출)
-                                    if (_uploadedImages.length < 3 && !_isSaved)
+                                    // 업로드 버튼
+                                    if (_uploadedImages.length < 3)
                                       AppButton(
                                         onPressed: _handleImageUpload,
                                         variant: ButtonVariant.ghost,
@@ -548,25 +569,22 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                         Positioned(
                                           top: 4,
                                           right: 4,
-                                          // 이미지 삭제 버튼 (저장 전만 노출)
-                                          child: !_isSaved
-                                              ? GestureDetector(
-                                                  onTap: () => _handleImageDelete(index),
-                                                  child: Container(
-                                                    width: 24,
-                                                    height: 24,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.black.withOpacity(0.5),
-                                                      borderRadius: BorderRadius.circular(12),
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons.close,
-                                                      size: 12,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                )
-                                              : const SizedBox.shrink(),
+                                          child: GestureDetector(
+                                            onTap: () => _handleImageDelete(index),
+                                            child: Container(
+                                              width: 24,
+                                              height: 24,
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withOpacity(0.5),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: const Icon(
+                                                Icons.close,
+                                                size: 12,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -577,57 +595,56 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                             ],
 
                             // Diary Content
-                            Container(
-                              height: 400, // 고정 높이 설정
-                              decoration: BoxDecoration(
-                                color: AppColors.calendarBg,
-                              ),
-                              child: Stack(
-                                children: [
-                                  // Notebook lines
-                                  _buildNotebookLines(),
-                                  
-                                  // Writing Area
-                                  Positioned.fill(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: TextField(
-                                        controller: _entryController,
-                                        maxLines: null,
-                                        expands: true,
-                                        textAlignVertical: TextAlignVertical.top,
-                                        style: TextStyle(
-                                          color: AppColors.foreground,
-                                          height: 2.0,
-                                          fontSize: 16,
-                                        ),
-                                        readOnly: _isSaved,
-                                        enabled: !_isSaved,
-                                        decoration: InputDecoration(
-                                          hintText: widget.existingEntry?.entry != null 
-                                              ? "일기를 수정해보세요..." 
-                                              : "오늘의 이야기를 작성해보세요...",
-                                          hintStyle: TextStyle(
-                                            color: AppColors.mutedForeground.withOpacity(0.7),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.calendarBg,
+                                ),
+                                child: Stack(
+                                  children: [
+                                    // Notebook lines
+                                    _buildNotebookLines(),
+                                    
+                                    // Writing Area
+                                    Positioned.fill(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: TextField(
+                                          controller: _entryController,
+                                          maxLines: null,
+                                          expands: true,
+                                          textAlignVertical: TextAlignVertical.top,
+                                          style: TextStyle(
+                                            color: AppColors.foreground,
+                                            height: 2.0,
+                                            fontSize: 16,
                                           ),
-                                          border: InputBorder.none,
-                                          enabledBorder: InputBorder.none,
-                                          focusedBorder: InputBorder.none,
-                                          errorBorder: InputBorder.none,
-                                          focusedErrorBorder: InputBorder.none,
-                                          disabledBorder: InputBorder.none,
-                                          contentPadding: EdgeInsets.zero,
-                                          filled: false,
+                                          decoration: InputDecoration(
+                                            hintText: widget.existingEntry?.entry != null 
+                                                ? "일기를 수정해보세요..." 
+                                                : "오늘의 이야기를 작성해보세요...",
+                                            hintStyle: TextStyle(
+                                              color: AppColors.mutedForeground.withOpacity(0.7),
+                                            ),
+                                            border: InputBorder.none,
+                                            enabledBorder: InputBorder.none,
+                                            focusedBorder: InputBorder.none,
+                                            errorBorder: InputBorder.none,
+                                            focusedErrorBorder: InputBorder.none,
+                                            disabledBorder: InputBorder.none,
+                                            contentPadding: EdgeInsets.zero,
+                                            filled: false,
+                                          ),
+                                          onChanged: (text) {
+                                            setState(() {
+                                              _hasText = text.trim().isNotEmpty;
+                                            });
+                                          },
                                         ),
-                                        onChanged: (text) {
-                                          setState(() {
-                                            _hasText = text.trim().isNotEmpty;
-                                          });
-                                        },
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                             
@@ -786,9 +803,9 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),

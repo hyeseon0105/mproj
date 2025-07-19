@@ -45,36 +45,5 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	
-	<!-- 카메라 권한 -->
-	<key>NSCameraUsageDescription</key>
-	<string>일기 작성 시 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.</string>
-	
-	<!-- 마이크 권한 -->
-	<key>NSMicrophoneUsageDescription</key>
-	<string>음성 인식을 위해 마이크 접근 권한이 필요합니다.</string>
-	
-	<!-- 사진 라이브러리 권한 -->
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>일기 작성 시 사진을 선택하기 위해 사진 라이브러리 접근 권한이 필요합니다.</string>
-	
-	<!-- 사진 라이브러리 추가 권한 -->
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>일기 작성 시 사진을 저장하기 위해 사진 라이브러리 접근 권한이 필요합니다.</string>
-	
-	<!-- 외부 앱 호출 허용 -->
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>kb-acp</string>
-		<string>shinhan</string>
-		<string>lotte</string>
-		<string>hyundai</string>
-		<string>samsung</string>
-		<string>kakaotalk</string>
-		<string>naver</string>
-		<string>line</string>
-		<string>whatsapp</string>
-		<string>telegram</string>
-	</array>
 </dict>
 </plist>
