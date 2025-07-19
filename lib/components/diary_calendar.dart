@@ -6,6 +6,7 @@ import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
 import '../services/diary_service.dart'; // Added import for DiaryService
+import '../services/fortune_service.dart'; // Added import for FortuneService
 
 class DiaryCalendar extends StatefulWidget {
   final Function(String)? onDateSelect;
@@ -61,6 +62,11 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     super.initState();
     currentDate = DateTime.now();
     emotionData = widget.emotionData ?? _generateCurrentMonthSampleData();
+    
+    // 생년월일이 설정되어 있으면 운세 로드
+    if (widget.userBirthday != null) {
+      _loadTodaysFortune(widget.userBirthday!);
+    }
   }
 
   Map<String, EmotionData> _generateCurrentMonthSampleData() {
@@ -137,46 +143,47 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     }
   }
 
-  String _generateTodaysFortune(DateTime birthday) {
-    final today = DateTime.now();
-    final birthMonth = birthday.month;
-    final birthDay = birthday.day;
-    final todayNumber = today.day + birthMonth + birthDay;
-    
-    final fortunes = [
-      "오늘은 새로운 기회가 찾아올 수 있는 날입니다. 열린 마음으로 하루를 시작해보세요! ✨",
-      "소중한 사람과의 만남이나 연락이 있을 것 같아요. 따뜻한 마음으로 대화해보세요 💕",
-      "창의적인 아이디어가 떠오르는 날이에요. 새로운 것을 시도해보는 것도 좋겠어요 🎨",
-      "조금 조심스러운 하루가 될 수 있어요. 신중하게 판단하시고 무리하지 마세요 🤗",
-      "행운이 함께하는 날입니다! 긍정적인 마음가짐으로 하루를 보내세요 🍀",
-      "평온하고 안정적인 하루가 될 것 같아요. 여유로운 마음으로 하루를 즐겨보세요 🌸",
-      "새로운 배움이나 깨달음이 있을 수 있는 날이에요. 호기심을 가지고 하루를 보내세요 📚",
-      "주변 사람들과의 관계가 더욱 돈독해질 것 같아요. 감사하는 마음을 표현해보세요 💝"
-    ];
-    
-    return fortunes[todayNumber % fortunes.length];
-  }
+  String _currentFortune = '';
+  bool _isLoadingFortune = false;
 
-  Future<void> _handlePremiumSubscription() async {
-    // Flutter에서는 in_app_purchase 패키지를 사용하여 결제 처리
-    // 여기서는 시뮬레이션으로 처리
+  Future<void> _loadTodaysFortune(DateTime birthday) async {
+    if (_isLoadingFortune) return;
+    
+    setState(() {
+      _isLoadingFortune = true;
+    });
+
     try {
-      // 실제 구현에서는 in_app_purchase 패키지 사용
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('결제 완료! 프리미엄 구독이 완료되었습니다.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('결제 중 오류가 발생했습니다. 다시 시도해 주세요.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // 생년월일을 YYYYMMDD 형식으로 변환
+      final birthdayString = '${birthday.year}${birthday.month.toString().padLeft(2, '0')}${birthday.day.toString().padLeft(2, '0')}';
+      
+      // OpenAI API를 통해 운세 생성 시도
+      final fortune = await FortuneService.generateFortune(birthdayString);
+      
+      if (fortune != null) {
+        setState(() {
+          _currentFortune = fortune;
+        });
+      } else {
+        // API 실패 시 기본 운세 사용
+        setState(() {
+          _currentFortune = FortuneService.getDefaultFortune(birthday);
+        });
+      }
+    } catch (e) {
+      print('운세 로딩 중 오류: $e');
+      // 오류 발생 시 기본 운세 사용
+      setState(() {
+        _currentFortune = FortuneService.getDefaultFortune(birthday);
+      });
+    } finally {
+      setState(() {
+        _isLoadingFortune = false;
+      });
     }
   }
+
+
 
   List<Widget> _renderCalendarDays() {
     final year = currentDate.year;
@@ -287,68 +294,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   }
 
   Widget _renderFortuneSection() {
-    if (widget.userSubscription == 'normal') {
-      return AppCard(
-        backgroundColor: AppColors.calendarBg,
-        borderRadius: BorderRadius.circular(24),
-        padding: const EdgeInsets.all(24),
-        margin: const EdgeInsets.only(top: 24),
-        child: Column(
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primaryGradientStart, AppColors.primaryGradientEnd],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Text('🔮', style: TextStyle(fontSize: 24)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '오늘의 운세',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.foreground,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '프리미엄 구독하고 매일 개인 맞춤 운세를 확인해보세요!',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.mutedForeground,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: AppButton(
-                onPressed: _handlePremiumSubscription,
-                text: '프리미엄 구독하기',
-                variant: ButtonVariant.primary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
+    // 생년월일이 설정되지 않은 경우 마이페이지로 이동하는 카드 표시
     if (widget.userBirthday == null) {
       return AppCard(
         backgroundColor: AppColors.calendarBg,
@@ -414,7 +360,6 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
       );
     }
 
-    final todaysFortune = _generateTodaysFortune(widget.userBirthday!);
     final today = DateTime.now();
     final formatToday = '${today.month}월 ${today.day}일';
 
@@ -490,15 +435,37 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                 ),
               ],
             ),
-            child: Text(
-              todaysFortune,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.foreground,
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            child: _isLoadingFortune
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '운세를 생성하고 있어요...',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                )
+              : Text(
+                  _currentFortune.isNotEmpty ? _currentFortune : FortuneService.getDefaultFortune(widget.userBirthday!),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.foreground,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
           ),
         ],
       ),
