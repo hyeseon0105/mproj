@@ -28,7 +28,7 @@ if os.path.exists("uploads"):
 
 # 라우터 등록
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
-app.include_router(posts_router, prefix="/api", tags=["posts"])
+app.include_router(posts_router, prefix="/api/posts", tags=["posts"])
 # app.include_router(asr_router, prefix="/api", tags=["asr"])
 
 # 애플리케이션 시작 시 실행
