@@ -27,64 +27,12 @@ class _MyPageState extends State<MyPage> {
   DateTime? _tempBirthday;
   DateTime _currentCalendarDate = DateTime.now(); // 현재 표시중인 달력의 년/월 상태 추가
   
-  // 사용자 설정 이모티콘 카테고리 (Firebase 이미지 URL 사용)
+  // Emoji categories state (이모지로 표시, Firebase URL은 별도 매핑)
   Map<Emotion, List<String>> _emojiCategories = {
-    Emotion.shape: [
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fexcited_shape-removebg-preview.png?alt=media&token=85fadfb8-7006-44d0-a39d-b3fd6070bb96',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fconfident_shape-removebg-preview.png?alt=media&token=8ab02bc8-8569-42ff-b78d-b9527f15d0af',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fangry_shape-removebg-preview.png?alt=media&token=92a25f79-4c1d-4b5d-9e5c-2f469e56cefa',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fdetermined_shape-removebg-preview.png?alt=media&token=69eb4cf0-ab61-4f5e-add3-b2148dc2a108',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fhappy_shape-removebg-preview.png?alt=media&token=5a8aa9dd-6ea5-4132-95af-385340846076',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fcalm_shape-removebg-preview.png?alt=media&token=cdc2fa85-10b7-46f6-881c-dd874c38b3ea',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Flove_shape-removebg-preview.png?alt=media&token=1a7ec74f-4297-42a4-aeb8-97aee1e9ff6c',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fsad_shape-removebg-preview.png?alt=media&token=acbc7284-1126-4428-a3b2-f8b6e7932b98',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Ftouched_shape-removebg-preview.png?alt=media&token=bbb50a1c-90d6-43fd-be40-4be4f51bc1d0',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fanxious_shape-removebg-preview.png?alt=media&token=7859ebac-cd9d-43a3-a42c-aec651d37e6e',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fconfused_shape-removebg-preview.png?alt=media&token=4794d127-9b61-4c68-86de-8478c4da8fb9'
-    ],
-    Emotion.fruit: [
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fhappy_fruit-removebg-preview.png?alt=media&token=d10a503b-fee7-4bc2-b141-fd4b33dae1f1',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fcalm_fruit-removebg-preview.png?alt=media&token=839efcad-0022-4cc9-ac38-90175d9026d2',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Flove_fruit-removebg-preview.png?alt=media&token=ba7857c6-5afd-48e0-addd-7b3f54583c15',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fexcited_fruit-removebg-preview.png?alt=media&token=0284bce2-aa88-4766-97fb-5d5d2248cf31',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fangry_fruit-removebg-preview.png?alt=media&token=679778b9-5a1b-469a-8e86-b01585cb1ee2',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fconfident_fruit-removebg-preview.png?alt=media&token=6edcc903-8d78-4dd9-bcdd-1c6b26645044',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fdetermined_fruit-removebg-preview.png?alt=media&token=ed288879-86c4-4d6d-946e-477f2aafc3ce',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fsad_fruit-removebg-preview.png?alt=media&token=e9e0b0f7-6590-4209-a7d1-26377eb33c05',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Ftouched_fruit-removebg-preview.png?alt=media&token=c69dee6d-7d53-4af7-a884-2f751aecbe42',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fanxious_fruit-removebg-preview.png?alt=media&token=be8f8279-2b08-47bf-9856-c39daf5eac40',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fconfused_fruit-removebg-preview.png?alt=media&token=7adfcf22-af7a-4eb1-a225-34875b6540cf'
-    ],
-    Emotion.animal: [
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fhappy_animal-removebg-preview.png?alt=media&token=66ff8e2d-d941-4fd7-9d7f-9766db03cbd5',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fcalm_animal-removebg-preview.png?alt=media&token=afd7bf65-5150-40e3-8b95-cd956dff113d',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Flove_animal-removebg-preview.png?alt=media&token=e0e2ccbd-b59a-4d09-968a-562208f90be1',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fexcited_animal-removebg-preview.png?alt=media&token=48442937-5504-4392-88a9-039aef405f14',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fangry_animal-removebg-preview.png?alt=media&token=9bde31db-8801-4af0-9368-e6ce4a35fbac',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fconfident__animal-removebg-preview.png?alt=media&token=2983b323-a2a6-40aa-9b6c-a381d944dd27',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fdetermined_animal-removebg-preview.png?alt=media&token=abf05981-4ab3-49b3-ba37-096ab8c22478',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fsad_animal-removebg-preview.png?alt=media&token=04c99bd8-8ad4-43de-91cd-3b7354780677',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Ftouched_animal-removebg-preview.png?alt=media&token=629be9ec-be17-407f-beb0-6b67f09b7036',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fanxious_animal-removebg-preview.png?alt=media&token=bd25e31d-629b-4e79-b95e-019f8c76dac2',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fconfused__animal-removebg-preview.png?alt=media&token=74192a1e-86a7-4eb6-b690-154984c427dc'
-    ],
-    Emotion.weather: [
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fhappy_weather-removebg-preview.png?alt=media&token=fd77e998-6f47-459a-bd1c-458e309fed41',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fcalm_weather-removebg-preview.png?alt=media&token=7703fd25-fe2b-4750-a415-5f86c4e7b058',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Flove_weather-removebg-preview.png?alt=media&token=2451105b-ab3e-482d-bf9f-12f0a6a69a53',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fexcited_weather-removebg-preview.png?alt=media&token=5de71f38-1178-4e3c-887e-af07547caba9',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fangry_weather-removebg-preview.png?alt=media&token=2f4c6212-697d-49b7-9d5e-ae1f2b1fa84e',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fconfident_weather-removebg-preview.png?alt=media&token=ea30d002-312b-4ae5-ad85-933bbc009dc6',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fdetermined_weather-removebg-preview.png?alt=media&token=0eb8fb3d-22dd-4b4f-8e12-7d830f32be6d',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fsad_weather-removebg-preview.png?alt=media&token=aa972b9a-8952-4dc7-abe7-692ec7be0d16',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Ftouched_weather-removebg-preview.png?alt=media&token=5e224042-72ae-45a4-891a-8e6abdb5285c',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fanxious_weather-removebg-preview.png?alt=media&token=fc718a17-8d8e-4ed1-a78a-891fa9a149d0',
-      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fconfused_weather-removebg-preview.png?alt=media&token=afdfb6bf-2c69-4ef2-97a1-2e5aa67e6fdb'
-    ],
+    Emotion.shape: ['⭐', '🔶', '🔷', '⚫', '🔺'],
+    Emotion.fruit: ['🍎', '🍊', '🍌', '🍇', '🍓'],
+    Emotion.animal: ['🐶', '🐱', '🐰', '🐸', '🐼'],
+    Emotion.weather: ['☀️', '🌧️', '⛈️', '🌈', '❄️']
   };
 
   // Firebase 이미지 URL 매핑
@@ -201,15 +149,6 @@ class _MyPageState extends State<MyPage> {
   void initState() {
     super.initState();
     _tempName = _userName;
-    
-    // AppState에서 사용자 설정 이모티콘 카테고리와 선택된 카테고리 로드
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final appState = Provider.of<AppState>(context, listen: false);
-      setState(() {
-        _emojiCategories = Map.from(appState.userEmoticonCategories);
-        _selectedEmotion = appState.selectedEmoticonCategory;
-      });
-    });
   }
 
   String _formatDate(DateTime? date) {
@@ -237,13 +176,13 @@ class _MyPageState extends State<MyPage> {
     });
   }
 
-  void _handleEmojiSelect(String imageUrl) {
+  void _handleEmojiSelect(String emoji) {
     setState(() {
       var currentEmojis = _emojiCategories[_selectedEmotion]!;
-      if (currentEmojis.contains(imageUrl)) {
-        currentEmojis.remove(imageUrl);
+      if (currentEmojis.contains(emoji)) {
+        currentEmojis.remove(emoji);
       } else {
-        currentEmojis.add(imageUrl);
+        currentEmojis.add(emoji);
       }
       _emojiCategories[_selectedEmotion] = List.from(currentEmojis);
     });
@@ -254,77 +193,55 @@ class _MyPageState extends State<MyPage> {
   }
 
   void _handleCategorySelect(Emotion emotion) {
-    // 프리미엄 제한 제거 - 모든 카테고리 자유롭게 선택 가능
-    setState(() {
-      _selectedEmotion = emotion;
-    });
-    
-    // AppState에 선택된 카테고리 저장
-    final appState = Provider.of<AppState>(context, listen: false);
-    appState.setSelectedEmoticonCategory(emotion);
+    // 프리미엄 카테고리이고 현재 프리미엄이 아닌 경우 결제 모달 표시
+    if (_isPremiumCategory(emotion) && 
+        Provider.of<AppState>(context, listen: false).userSubscription != UserSubscription.premium) {
+      _showPremiumRequiredDialog();
+    } else {
+      setState(() {
+        _selectedEmotion = emotion;
+      });
+    }
   }
 
-  // 프리미엄 구독 다이얼로그 제거 - 모든 카테고리 자유롭게 사용 가능
+  void _showPremiumRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('프리미엄 구독 필요'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('이 카테고리는 프리미엄 구독자만 이용할 수 있습니다.'),
+            SizedBox(height: 8),
+            Text('프리미엄 구독을 통해 더 다양한 이모티콘을 사용해보세요!'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _handlePremiumSubscription(Provider.of<AppState>(context, listen: false));
+            },
+            child: const Text('프리미엄 구독'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _resetToDefault() {
     setState(() {
       _emojiCategories = {
-        Emotion.shape: [
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fexcited_shape-removebg-preview.png?alt=media&token=85fadfb8-7006-44d0-a39d-b3fd6070bb96',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fconfident_shape-removebg-preview.png?alt=media&token=8ab02bc8-8569-42ff-b78d-b9527f15d0af',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fangry_shape-removebg-preview.png?alt=media&token=92a25f79-4c1d-4b5d-9e5c-2f469e56cefa',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fdetermined_shape-removebg-preview.png?alt=media&token=69eb4cf0-ab61-4f5e-add3-b2148dc2a108',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fhappy_shape-removebg-preview.png?alt=media&token=5a8aa9dd-6ea5-4132-95af-385340846076',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fcalm_shape-removebg-preview.png?alt=media&token=cdc2fa85-10b7-46f6-881c-dd874c38b3ea',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Flove_shape-removebg-preview.png?alt=media&token=1a7ec74f-4297-42a4-aeb8-97aee1e9ff6c',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fsad_shape-removebg-preview.png?alt=media&token=acbc7284-1126-4428-a3b2-f8b6e7932b98',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Ftouched_shape-removebg-preview.png?alt=media&token=bbb50a1c-90d6-43fd-be40-4be4f51bc1d0',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fanxious_shape-removebg-preview.png?alt=media&token=7859ebac-cd9d-43a3-a42c-aec651d37e6e',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fconfused_shape-removebg-preview.png?alt=media&token=4794d127-9b61-4c68-86de-8478c4da8fb9'
-        ],
-        Emotion.fruit: [
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fhappy_fruit-removebg-preview.png?alt=media&token=d10a503b-fee7-4bc2-b141-fd4b33dae1f1',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fcalm_fruit-removebg-preview.png?alt=media&token=839efcad-0022-4cc9-ac38-90175d9026d2',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Flove_fruit-removebg-preview.png?alt=media&token=ba7857c6-5afd-48e0-addd-7b3f54583c15',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fexcited_fruit-removebg-preview.png?alt=media&token=0284bce2-aa88-4766-97fb-5d5d2248cf31',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fangry_fruit-removebg-preview.png?alt=media&token=679778b9-5a1b-469a-8e86-b01585cb1ee2',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fconfident_fruit-removebg-preview.png?alt=media&token=6edcc903-8d78-4dd9-bcdd-1c6b26645044',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fdetermined_fruit-removebg-preview.png?alt=media&token=ed288879-86c4-4d6d-946e-477f2aafc3ce',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fsad_fruit-removebg-preview.png?alt=media&token=e9e0b0f7-6590-4209-a7d1-26377eb33c05',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Ftouched_fruit-removebg-preview.png?alt=media&token=c69dee6d-7d53-4af7-a884-2f751aecbe42',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fanxious_fruit-removebg-preview.png?alt=media&token=be8f8279-2b08-47bf-9856-c39daf5eac40',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fconfused_fruit-removebg-preview.png?alt=media&token=7adfcf22-af7a-4eb1-a225-34875b6540cf'
-        ],
-        Emotion.animal: [
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fhappy_animal-removebg-preview.png?alt=media&token=66ff8e2d-d941-4fd7-9d7f-9766db03cbd5',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fcalm_animal-removebg-preview.png?alt=media&token=afd7bf65-5150-40e3-8b95-cd956dff113d',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Flove_animal-removebg-preview.png?alt=media&token=e0e2ccbd-b59a-4d09-968a-562208f90be1',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fexcited_animal-removebg-preview.png?alt=media&token=48442937-5504-4392-88a9-039aef405f14',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fangry_animal-removebg-preview.png?alt=media&token=9bde31db-8801-4af0-9368-e6ce4a35fbac',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fconfident__animal-removebg-preview.png?alt=media&token=2983b323-a2a6-40aa-9b6c-a381d944dd27',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fdetermined_animal-removebg-preview.png?alt=media&token=abf05981-4ab3-49b3-ba37-096ab8c22478',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fsad_animal-removebg-preview.png?alt=media&token=04c99bd8-8ad4-43de-91cd-3b7354780677',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Ftouched_animal-removebg-preview.png?alt=media&token=629be9ec-be17-407f-beb0-6b67f09b7036',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fanxious_animal-removebg-preview.png?alt=media&token=bd25e31d-629b-4e79-b95e-019f8c76dac2',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fconfused__animal-removebg-preview.png?alt=media&token=74192a1e-86a7-4eb6-b690-154984c427dc'
-        ],
-        Emotion.weather: [
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fhappy_weather-removebg-preview.png?alt=media&token=fd77e998-6f47-459a-bd1c-458e309fed41',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fcalm_weather-removebg-preview.png?alt=media&token=7703fd25-fe2b-4750-a415-5f86c4e7b058',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Flove_weather-removebg-preview.png?alt=media&token=2451105b-ab3e-482d-bf9f-12f0a6a69a53',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fexcited_weather-removebg-preview.png?alt=media&token=5de71f38-1178-4e3c-887e-af07547caba9',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fangry_weather-removebg-preview.png?alt=media&token=2f4c6212-697d-49b7-9d5e-ae1f2b1fa84e',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fconfident_weather-removebg-preview.png?alt=media&token=ea30d002-312b-4ae5-ad85-933bbc009dc6',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fdetermined_weather-removebg-preview.png?alt=media&token=0eb8fb3d-22dd-4b4f-8e12-7d830f32be6d',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fsad_weather-removebg-preview.png?alt=media&token=aa972b9a-8952-4dc7-abe7-692ec7be0d16',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Ftouched_weather-removebg-preview.png?alt=media&token=5e224042-72ae-45a4-891a-8e6abdb5285c',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fanxious_weather-removebg-preview.png?alt=media&token=fc718a17-8d8e-4ed1-a78a-891fa9a149d0',
-          'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fconfused_weather-removebg-preview.png?alt=media&token=afdfb6bf-2c69-4ef2-97a1-2e5aa67e6fdb'
-        ],
+        Emotion.shape: ['⭐', '🔶', '🔷', '⚫', '🔺'],
+        Emotion.fruit: ['🍎', '🍊', '🍌', '🍇', '🍓'],
+        Emotion.animal: ['🐶', '🐱', '🐰', '🐸', '🐼'],
+        Emotion.weather: ['☀️', '🌧️', '⛈️', '❄️', '🌈'],
       };
       _selectedEmotion = Emotion.shape;
       _voiceEnabled = true;
@@ -337,10 +254,9 @@ class _MyPageState extends State<MyPage> {
       _currentCalendarDate = DateTime.now();
     });
 
-    // AppState의 사용자 설정 카테고리와 선택된 카테고리도 초기화
+    // AppState의 사용자 설정 카테고리도 초기화
     final appState = Provider.of<AppState>(context, listen: false);
     appState.resetUserEmoticonCategories();
-    appState.setSelectedEmoticonCategory(Emotion.shape);
   }
 
   // 행복 지수 계산
@@ -385,7 +301,81 @@ class _MyPageState extends State<MyPage> {
     };
   }
 
-  // 프리미엄 결제 처리 함수 제거 - 모든 카테고리 자유롭게 사용 가능
+  // 프리미엄 결제 처리 (포트원 KG이니시스)
+  Future<void> _handlePremiumSubscription(AppState appState) async {
+    try {
+      // 로딩 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // 결제 정보 준비
+      final merchantUid = PaymentService.generateMerchantUid();
+      const amount = 9900; // 9,900원
+      const productName = '하루그램 프리미엄 구독';
+
+      // 로딩 다이얼로그 닫기
+      Navigator.of(context).pop();
+
+      // WebView로 결제창 띄우기
+      final paymentResult = await PaymentService.requestPayment(
+        context: context,
+        merchantUid: merchantUid,
+        amount: amount,
+        name: productName,
+        buyerEmail: 'user@example.com', // 실제 사용자 이메일로 변경 필요
+        buyerName: _userName, // 사용자 이름 사용
+      );
+
+      if (paymentResult['success']) {
+        // 결제 성공 시 검증
+        final verifyResult = await PaymentService.verifyPayment(
+          impUid: paymentResult['imp_uid'],
+          merchantUid: paymentResult['merchant_uid'],
+          amount: paymentResult['amount'],
+        );
+
+        if (verifyResult['success']) {
+          // 프리미엄 구독 상태 업데이트
+          appState.setUserSubscription(UserSubscription.premium);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('프리미엄 구독이 완료되었습니다! 모든 기능을 이용하실 수 있습니다.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          throw Exception('결제 검증 실패');
+        }
+      } else {
+        // 결제 실패
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('결제가 취소되었습니다: ${paymentResult['error']}'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('결제 중 오류가 발생했습니다: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   // 달력 날짜 계산을 위한 헬퍼 함수들
   int _getDaysInMonth(int year, int month) {
@@ -457,9 +447,9 @@ class _MyPageState extends State<MyPage> {
     return 0;
   }
 
-  // 프리미엄 카테고리 여부 확인 - 모든 카테고리 자유롭게 사용 가능
+  // 프리미엄 카테고리 여부 확인
   bool _isPremiumCategory(Emotion emotion) {
-    return false; // 모든 카테고리 자유롭게 사용 가능
+    return emotion != Emotion.shape;
   }
 
   Widget _buildEmojiDialog(BuildContext context) {
@@ -527,7 +517,17 @@ class _MyPageState extends State<MyPage> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                            // 프리미엄 제한 제거 - 모든 카테고리 자유롭게 사용 가능
+                if (_isPremiumCategory(_selectedEmotion))
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Text(
+                      '프리미엄 전용',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 16),
@@ -535,48 +535,35 @@ class _MyPageState extends State<MyPage> {
             // 선택된 Firebase 이미지들
             Container(
               padding: const EdgeInsets.all(12),
-              height: 220, // 스크롤 영역 높이 지정 (원하는 값으로 조정 가능)
-              child: GridView.builder(
-                itemCount: _emojiCategories[_selectedEmotion]!.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5, // 한 줄에 5개씩
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1,
-                ),
-                itemBuilder: (context, index) {
-                  final imageUrl = _emojiCategories[_selectedEmotion]![index];
-                  return Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: AppColors.primary,
-                        width: 2,
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (var imageUrl in _firebaseImageUrls[_selectedEmotion]!)
+                    Container(
+                      width: 56,
+                      height: 56,
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: AppColors.muted,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.error,
+                              size: 24,
+                              color: Colors.grey,
+                            ),
+                          );
+                        },
                       ),
-                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: AppColors.muted,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.error,
-                            size: 24,
-                            color: Colors.grey,
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -651,7 +638,12 @@ class _MyPageState extends State<MyPage> {
                 fontSize: 13, // 폰트 크기 조정
               ),
             ),
-            // 프리미엄 제한 제거 - 잠금 아이콘 제거
+            if (_isPremiumCategory(emotion))
+              const Icon(
+                Icons.lock,
+                size: 12, // 아이콘 크기 줄임
+                color: Colors.black54,
+              ),
           ],
         ),
       ),
@@ -745,7 +737,31 @@ class _MyPageState extends State<MyPage> {
                                 ),
                                 Row(
                                   children: [
-                                    // 프리미엄 구독 상태 표시 제거 - 모든 기능 자유롭게 사용 가능
+                                    // Subscription Status
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        gradient: appState.userSubscription == UserSubscription.premium
+                                            ? const LinearGradient(
+                                                colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                                              )
+                                            : null,
+                                        color: appState.userSubscription != UserSubscription.premium
+                                            ? AppColors.muted
+                                            : null,
+                                      ),
+                                      child: Text(
+                                        appState.userSubscription == UserSubscription.premium ? '프리미엄' : '노멀',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: appState.userSubscription == UserSubscription.premium
+                                              ? Colors.white
+                                              : AppColors.mutedForeground,
+                                        ),
+                                      ),
+                                    ),
                                     const SizedBox(width: 12),
                                     AppButton(
                                       onPressed: () {
@@ -1028,7 +1044,9 @@ class _MyPageState extends State<MyPage> {
                                                   _emotionLabels[_selectedEmotion]!,
                                                   style: const TextStyle(fontSize: 12),
                                                 ),
-                                                // 프리미엄 잠금 표시 제거 - 모든 카테고리 자유롭게 사용 가능
+                                                if (appState.userSubscription != UserSubscription.premium && 
+                                                    _selectedEmotion != Emotion.shape)
+                                                  const Text('🔒', style: TextStyle(fontSize: 12)),
                                               ],
                                             ),
                                             Row(
@@ -1408,11 +1426,13 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
-  // 카테고리 탭 위젯 - 프리미엄 제한 제거
+  // 카테고리 탭 위젯
   Widget _buildCategoryTab(Emotion emotion, String label, AppState appState) {
-    // 모든 카테고리 자유롭게 사용 가능
+    final bool isLocked = appState.userSubscription != UserSubscription.premium && 
+                         emotion != Emotion.shape;
+    
     return InkWell(
-      onTap: () {
+      onTap: isLocked ? null : () {
         setState(() {
           _selectedEmotion = emotion;
         });
@@ -1438,7 +1458,10 @@ class _MyPageState extends State<MyPage> {
                   : FontWeight.normal,
               ),
             ),
-            // 프리미엄 잠금 표시 제거 - 모든 카테고리 자유롭게 사용 가능
+            if (isLocked) ...[
+              const SizedBox(width: 4),
+              const Text('🔒', style: TextStyle(fontSize: 12)),
+            ],
           ],
         ),
       ),

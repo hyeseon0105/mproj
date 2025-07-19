@@ -52,6 +52,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
+  late Emotion _currentEmotion; // ← 이 줄 추가!
 
   // ImagePicker는 실제 앱에서 image_picker 패키지로 구현
 
@@ -84,9 +85,18 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     super.initState();
     _entryController = TextEditingController(text: widget.existingEntry?.entry ?? '');
     _isSaved = widget.existingEntry?.entry != null;
-    _currentEmoji = widget.existingEntry?.emoji ?? '';
+    if (widget.existingEntry?.emotion != null) {
+      _currentEmotion = widget.existingEntry!.emotion!;
+    } else if (widget.existingEntry?.entry != null) {
+      _currentEmotion = _analyzeEmotion(widget.existingEntry!.entry!);
+    } else {
+      // 여기서 AppState의 selectedEmoticonCategory를 기본값으로 사용
+      final appState = Provider.of<AppState>(context, listen: false);
+      _currentEmotion = appState.selectedEmoticonCategory;
+    }
+    _currentEmoji = _getUserEmoticon(_currentEmotion);
     _uploadedImages = List.from(widget.existingEntry?.images ?? []);
-    _hasText = _entryController.text.trim().isNotEmpty; // 초기 텍스트 상태 설정
+    _hasText = _entryController.text.trim().isNotEmpty;
 
     _fadeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 500),
@@ -97,7 +107,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       curve: Curves.easeInOut,
     );
 
-    // Generate AI message for existing entry when component mounts
+    // AI 메시지는 기존 entry로만 생성(이모티콘, entry는 건드리지 않음)
     if (widget.existingEntry?.entry != null && _aiMessage.isEmpty) {
       final emotion = _analyzeEmotion(widget.existingEntry!.entry!);
       final comfortMessage = _generateComfortMessage(emotion, widget.existingEntry!.entry!);
@@ -169,6 +179,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   }
 
   Future<void> _handleSave() async {
+    if (_isSaved) return; // 이미 저장된 경우 아무 동작도 하지 않음
     if (_entryController.text.trim().isEmpty) {
       return;
     }
@@ -186,7 +197,7 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     final comfortMessage = _generateComfortMessage(emotion, _entryController.text);
     setState(() {
       _aiMessage = comfortMessage;
-      _currentEmoji = _getUserEmoticon(emotion); // 새로 분석된 감정에 따라 이모티콘 업데이트
+      _currentEmoji = _getUserEmoticon(emotion); // 저장 시에만 이모티콘 변경
       _isAnalyzing = false;
       _isSaved = true;
     });
@@ -382,19 +393,20 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                         width: 48,
                                         height: 48,
                                         decoration: BoxDecoration(
-                                          color: AppColors.emotionCalm,
+                                          color: AppColors.calendarBg, // 더 부드러운 배경색으로 변경
                                           borderRadius: BorderRadius.circular(24),
                                         ),
                                         child: Center(
+                                          // 이모티콘 크기 키우기 (width: 56, height: 56)
                                           child: Image.network(
                                             _currentEmoji,
-                                            width: 32,
-                                            height: 32,
+                                            width: 150,
+                                            height: 150,
                                             fit: BoxFit.contain,
                                             errorBuilder: (context, error, stackTrace) {
                                               return Text(
                                                 '😊',
-                                                style: const TextStyle(fontSize: 24),
+                                                style: const TextStyle(fontSize: 56),
                                               );
                                             },
                                           ),
@@ -589,6 +601,8 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                                           height: 2.0,
                                           fontSize: 16,
                                         ),
+                                        readOnly: _isSaved,
+                                        enabled: !_isSaved,
                                         decoration: InputDecoration(
                                           hintText: widget.existingEntry?.entry != null 
                                               ? "일기를 수정해보세요..." 
