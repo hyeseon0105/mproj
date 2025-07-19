@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/app_state.dart';
 
 class DiaryService {
-  static const String baseUrl = 'http://localhost:8000'; // FastAPI 서버 주소
+  static const String baseUrl = 'http://10.0.2.2:8000'; // FastAPI 서버 주소 (Android 에뮬레이터용)
 
   Future<String> createDiary({
     required String content,

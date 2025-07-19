@@ -28,6 +28,7 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     email: Optional[str] = None
+    birthday: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: str
@@ -88,7 +89,8 @@ async def login(user_credentials: UserLogin):
         "id": user.get("id", str(user["_id"])),  # 단순 ID 또는 기존 ObjectId
         "username": user["username"],
         "email": user["email"],
-        "created_at": user["created_at"]
+        "created_at": user["created_at"],
+        "birthday": user.get("birthday")  # 생일 정보 추가
     }
     
     return {
@@ -188,6 +190,9 @@ async def update_user(user_id: str, user_update: UserUpdate):
             
         if user_update.email is not None:
             update_data["email"] = user_update.email
+            
+        if user_update.birthday is not None:
+            update_data["birthday"] = user_update.birthday
         
         if not update_data:
             raise HTTPException(status_code=400, detail="수정할 데이터가 없습니다")

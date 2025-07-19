@@ -4,6 +4,7 @@ import '../models/app_state.dart';
 import '../theme.dart';
 import '../ui/card.dart';
 import '../ui/button.dart';
+import '../services/user_service.dart';
 import 'dart:math';
 
 class MyPage extends StatefulWidget {
@@ -17,21 +18,52 @@ class _MyPageState extends State<MyPage> {
   final GlobalKey _birthdayInputKey = GlobalKey(); // 생일 입력 박스의 위치를 찾기 위한 키
   bool _voiceEnabled = true;
   double _voiceVolume = 50;
-  String _userName = '사용자';
   bool _isProfileDialogOpen = false;
   bool _isEmojiDialogOpen = false;
-  bool _isPremiumModalOpen = false;
+  final bool _isPremiumModalOpen = false;
   bool _isCalendarVisible = false;
-  String _tempName = '사용자';
+
   DateTime? _tempBirthday;
   DateTime _currentCalendarDate = DateTime.now(); // 현재 표시중인 달력의 년/월 상태 추가
   
-  // Emoji categories state
+  // Emoji categories state (이모지로 표시, Firebase URL은 별도 매핑)
   Map<Emotion, List<String>> _emojiCategories = {
     Emotion.shape: ['⭐', '🔶', '🔷', '⚫', '🔺'],
     Emotion.fruit: ['🍎', '🍊', '🍌', '🍇', '🍓'],
     Emotion.animal: ['🐶', '🐱', '🐰', '🐸', '🐼'],
     Emotion.weather: ['☀️', '🌧️', '⛈️', '🌈', '❄️']
+  };
+
+  // Firebase 이미지 URL 매핑
+  Map<Emotion, List<String>> _firebaseImageUrls = {
+    Emotion.shape: [
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fexcited_shape-removebg-preview.png?alt=media&token=85fadfb8-7006-44d0-a39d-b3fd6070bb96',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fconfident_shape-removebg-preview.png?alt=media&token=8ab02bc8-8569-42ff-b78d-b9527f15d0af',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fangry_shape-removebg-preview.png?alt=media&token=92a25f79-4c1d-4b5d-9e5c-2f469e56cefa',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fdetermined_shape-removebg-preview.png?alt=media&token=69eb4cf0-ab61-4f5e-add3-b2148dc2a108'
+    ],
+    Emotion.fruit: [
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fhappy_fruit-removebg-preview.png?alt=media&token=d10a503b-fee7-4bc2-b141-fd4b33dae1f1',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fcalm_fruit-removebg-preview.png?alt=media&token=839efcad-0022-4cc9-ac38-90175d9026d2',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Flove_fruit-removebg-preview.png?alt=media&token=ba7857c6-5afd-48e0-addd-7b3f54583c15',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fexcited_fruit-removebg-preview.png?alt=media&token=0284bce2-aa88-4766-97fb-5d5d2248cf31'
+    ],
+    Emotion.animal: [
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fhappy_animal-removebg-preview.png?alt=media&token=66ff8e2d-d941-4fd7-9d7f-9766db03cbd5',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fcalm_animal-removebg-preview.png?alt=media&token=afd7bf65-5150-40e3-8b95-cd956dff113d',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Flove_animal-removebg-preview.png?alt=media&token=e0e2ccbd-b59a-4d09-968a-562208f90be1',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fexcited_animal-removebg-preview.png?alt=media&token=48442937-5504-4392-88a9-039aef405f14'
+    ],
+    Emotion.weather: [
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fsad_weather-removebg-preview.png?alt=media&token=aa972b9a-8952-4dc7-abe7-692ec7be0d16',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fangry_weather-removebg-preview.png?alt=media&token=2f4c6212-697d-49b7-9d5e-ae1f2b1fa84e',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fexcited_weather-removebg-preview.png?alt=media&token=5de71f38-1178-4e3c-887e-af07547caba9',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fcalm_weather-removebg-preview.png?alt=media&token=7703fd25-fe2b-4750-a415-5f86c4e7b058'
+    ]
   };
   
   Emotion _selectedEmotion = Emotion.shape;
@@ -50,29 +82,69 @@ class _MyPageState extends State<MyPage> {
     Emotion.weather: 75
   };
 
-  final List<String> _availableEmojis = [
-    // 과일
-    '🍎', '🍊', '🍋', '🍌', '🍍', '🥭', '🍑', '🍒', '🍓', '🫐', '🥝', '🍅', '🫒', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍇', '🍈', '🍉',
-    // 동물
-    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐈', '🪶', '🐓', '🦃', '🦚', '🦜', '🦢', '🐇', '🦝', '🦨', '🦡', '🦫',
-    // 도형
-    '⭐', '🌟', '✨', '⚡', '💥', '🔥', '🌈', '☀️', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💠', '🔘', '🔳', '🔲',
-    // 날씨
-    '☀️', '🌤️', '⛅', '🌥️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '🌪️', '🌫️', '🌈', '☂️', '☔', '⚡', '🌊', '💧', '💦', '🧊'
-  ];
-
-  // 카테고리별 사용 가능한 이모티콘 맵 추가
+  // 카테고리별 사용 가능한 Firebase 이미지 URL 맵
   final Map<Emotion, List<String>> _availableEmoticonsByCategory = {
-    Emotion.shape: ['⭐', '🌟', '✨', '⚡', '💥', '🔥', '🌈', '☀️', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💠', '🔘', '🔳', '🔲'],
-    Emotion.fruit: ['🍎', '🍊', '🍋', '🍌', '🍍', '🥭', '🍑', '🍒', '🍓', '🫐', '🥝', '🍅', '🫒', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍇', '🍈', '🍉'],
-    Emotion.animal: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐈', '🪶', '🐓', '🦃', '🦚', '🦜', '🦢', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦫'],
-    Emotion.weather: ['☀️', '🌤️', '⛅', '🌥️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '🌪️', '🌫️', '🌈', '☂️', '☔', '⚡', '🌊', '💧', '💦', '🧊'],
+    Emotion.shape: [
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fexcited_shape-removebg-preview.png?alt=media&token=85fadfb8-7006-44d0-a39d-b3fd6070bb96',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fconfident_shape-removebg-preview.png?alt=media&token=8ab02bc8-8569-42ff-b78d-b9527f15d0af',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fangry_shape-removebg-preview.png?alt=media&token=92a25f79-4c1d-4b5d-9e5c-2f469e56cefa',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fdetermined_shape-removebg-preview.png?alt=media&token=69eb4cf0-ab61-4f5e-add3-b2148dc2a108',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fhappy_shape-removebg-preview.png?alt=media&token=5a8aa9dd-6ea5-4132-95af-385340846076',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fcalm_shape-removebg-preview.png?alt=media&token=cdc2fa85-10b7-46f6-881c-dd874c38b3ea',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Flove_shape-removebg-preview.png?alt=media&token=1a7ec74f-4297-42a4-aeb8-97aee1e9ff6c',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fsad_shape-removebg-preview.png?alt=media&token=acbc7284-1126-4428-a3b2-f8b6e7932b98',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Ftouched_shape-removebg-preview.png?alt=media&token=bbb50a1c-90d6-43fd-be40-4be4f51bc1d0',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fanxious_shape-removebg-preview.png?alt=media&token=7859ebac-cd9d-43a3-a42c-aec651d37e6e',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fconfused_shape-removebg-preview.png?alt=media&token=4794d127-9b61-4c68-86de-8478c4da8fb9'
+    ],
+    Emotion.fruit: [
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fhappy_fruit-removebg-preview.png?alt=media&token=d10a503b-fee7-4bc2-b141-fd4b33dae1f1',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fcalm_fruit-removebg-preview.png?alt=media&token=839efcad-0022-4cc9-ac38-90175d9026d2',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Flove_fruit-removebg-preview.png?alt=media&token=ba7857c6-5afd-48e0-addd-7b3f54583c15',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fexcited_fruit-removebg-preview.png?alt=media&token=0284bce2-aa88-4766-97fb-5d5d2248cf31',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fangry_fruit-removebg-preview.png?alt=media&token=679778b9-5a1b-469a-8e86-b01585cb1ee2',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fconfident_fruit-removebg-preview.png?alt=media&token=6edcc903-8d78-4dd9-bcdd-1c6b26645044',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fdetermined_fruit-removebg-preview.png?alt=media&token=ed288879-86c4-4d6d-946e-477f2aafc3ce',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fsad_fruit-removebg-preview.png?alt=media&token=e9e0b0f7-6590-4209-a7d1-26377eb33c05',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Ftouched_fruit-removebg-preview.png?alt=media&token=c69dee6d-7d53-4af7-a884-2f751aecbe42',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fanxious_fruit-removebg-preview.png?alt=media&token=be8f8279-2b08-47bf-9856-c39daf5eac40',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fconfused_fruit-removebg-preview.png?alt=media&token=7adfcf22-af7a-4eb1-a225-34875b6540cf'
+    ],
+    Emotion.animal: [
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fhappy_animal-removebg-preview.png?alt=media&token=66ff8e2d-d941-4fd7-9d7f-9766db03cbd5',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fcalm_animal-removebg-preview.png?alt=media&token=afd7bf65-5150-40e3-8b95-cd956dff113d',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Flove_animal-removebg-preview.png?alt=media&token=e0e2ccbd-b59a-4d09-968a-562208f90be1',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fexcited_animal-removebg-preview.png?alt=media&token=48442937-5504-4392-88a9-039aef405f14',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fangry_animal-removebg-preview.png?alt=media&token=9bde31db-8801-4af0-9368-e6ce4a35fbac',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fconfident__animal-removebg-preview.png?alt=media&token=2983b323-a2a6-40aa-9b6c-a381d944dd27',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fdetermined_animal-removebg-preview.png?alt=media&token=abf05981-4ab3-49b3-ba37-096ab8c22478',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fsad_animal-removebg-preview.png?alt=media&token=04c99bd8-8ad4-43de-91cd-3b7354780677',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Ftouched_animal-removebg-preview.png?alt=media&token=629be9ec-be17-407f-beb0-6b67f09b7036',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fanxious_animal-removebg-preview.png?alt=media&token=bd25e31d-629b-4e79-b95e-019f8c76dac2',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fconfused__animal-removebg-preview.png?alt=media&token=74192a1e-86a7-4eb6-b690-154984c427dc'
+    ],
+    Emotion.weather: [
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fhappy_weather-removebg-preview.png?alt=media&token=fd77e998-6f47-459a-bd1c-458e309fed41',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fcalm_weather-removebg-preview.png?alt=media&token=7703fd25-fe2b-4750-a415-5f86c4e7b058',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Flove_weather-removebg-preview.png?alt=media&token=2451105b-ab3e-482d-bf9f-12f0a6a69a53',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fexcited_weather-removebg-preview.png?alt=media&token=5de71f38-1178-4e3c-887e-af07547caba9',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fangry_weather-removebg-preview.png?alt=media&token=2f4c6212-697d-49b7-9d5e-ae1f2b1fa84e',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fconfident_weather-removebg-preview.png?alt=media&token=ea30d002-312b-4ae5-ad85-933bbc009dc6',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fdetermined_weather-removebg-preview.png?alt=media&token=0eb8fb3d-22dd-4b4f-8e12-7d830f32be6d',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fsad_weather-removebg-preview.png?alt=media&token=aa972b9a-8952-4dc7-abe7-692ec7be0d16',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Ftouched_weather-removebg-preview.png?alt=media&token=5e224042-72ae-45a4-891a-8e6abdb5285c',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fanxious_weather-removebg-preview.png?alt=media&token=fc718a17-8d8e-4ed1-a78a-891fa9a149d0',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fconfused_weather-removebg-preview.png?alt=media&token=afdfb6bf-2c69-4ef2-97a1-2e5aa67e6fdb'
+    ],
   };
 
   @override
   void initState() {
     super.initState();
-    _tempName = _userName;
   }
 
   String _formatDate(DateTime? date) {
@@ -80,12 +152,21 @@ class _MyPageState extends State<MyPage> {
     return '${date.year}년 ${date.month.toString().padLeft(2, '0')}월 ${date.day.toString().padLeft(2, '0')}일';
   }
 
-  void _handleSaveProfile(AppState appState) {
-    setState(() {
-      _userName = _tempName;
-    });
+  void _handleSaveProfile(AppState appState) async {
     if (_tempBirthday != null) {
       appState.setUserBirthday(_tempBirthday!);
+      
+      // 백엔드에 생일 정보 저장
+      try {
+        final success = await UserService.updateUserBirthday(appState.userEmail, _tempBirthday!);
+        if (success) {
+          print('생일 정보가 백엔드에 저장되었습니다.');
+        } else {
+          print('생일 정보 저장에 실패했습니다.');
+        }
+      } catch (e) {
+        print('생일 정보 저장 중 오류: $e');
+      }
     }
     setState(() {
       _isProfileDialogOpen = false;
@@ -94,7 +175,6 @@ class _MyPageState extends State<MyPage> {
 
   void _handleCancelProfile(AppState appState) {
     setState(() {
-      _tempName = _userName;
       _tempBirthday = appState.userBirthday;
       _isProfileDialogOpen = false;
     });
@@ -105,16 +185,19 @@ class _MyPageState extends State<MyPage> {
       var currentEmojis = _emojiCategories[_selectedEmotion]!;
       if (currentEmojis.contains(emoji)) {
         currentEmojis.remove(emoji);
-      } else if (currentEmojis.length < 5) {
+      } else {
         currentEmojis.add(emoji);
       }
+      _emojiCategories[_selectedEmotion] = List.from(currentEmojis);
     });
   }
 
-  void _handleCategorySelect(Emotion emotion) {
+  void _handleCategorySelect(Emotion emotion, AppState appState) {
     setState(() {
       _selectedEmotion = emotion;
     });
+    // AppState에 선택된 카테고리 저장
+    appState.setSelectedEmoticonCategory(emotion);
   }
 
   void _resetToDefault() {
@@ -125,6 +208,13 @@ class _MyPageState extends State<MyPage> {
         Emotion.animal: ['🐶', '🐱', '🐰', '🐸', '🐼'],
         Emotion.weather: ['☀️', '🌧️', '⛈️', '🌈', '❄️']
       };
+      _selectedEmotion = Emotion.shape;
+      _voiceEnabled = true;
+      _voiceVolume = 50;
+      _tempBirthday = null;
+      _isProfileDialogOpen = false;
+      _isCalendarVisible = false;
+      _currentCalendarDate = DateTime.now();
     });
   }
 
@@ -139,11 +229,31 @@ class _MyPageState extends State<MyPage> {
     
     final totalDays = currentMonthData.length;
     
+    // 사용자가 선택한 카테고리 가져오기
+    final selectedCategory = appState.selectedEmoticonCategory;
+    
     if (totalDays == 0) {
+      // 기본값은 선택된 카테고리의 neutral 이미지
+      String defaultEmojiUrl;
+      switch (selectedCategory) {
+        case Emotion.shape:
+          defaultEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5';
+          break;
+        case Emotion.fruit:
+          defaultEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39';
+          break;
+        case Emotion.animal:
+          defaultEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f';
+          break;
+        case Emotion.weather:
+          defaultEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f';
+          break;
+      }
+      
       return {
         'totalDays': 0,
         'happinessIndex': 50,
-        'happinessEmoji': '🐸',
+        'happinessEmojiUrl': defaultEmojiUrl,
         'happinessColor': const Color(0xFFEAB308),
         'gaugeAngle': 90.0
       };
@@ -154,7 +264,90 @@ class _MyPageState extends State<MyPage> {
     
     final happinessIndex = averageScore.round();
     final gaugeAngle = 180 - (happinessIndex / 100) * 180; // 180 to 0 degrees
-    final happinessEmoji = happinessIndex >= 51 ? '🐶' : happinessIndex >= 21 ? '🐸' : '🐱';
+    
+    // 사용자가 선택한 카테고리에 따른 Firebase 이미지 URL 결정
+    String happinessEmojiUrl;
+    if (happinessIndex >= 80) {
+      // 매우 행복한 경우 - excited 이미지
+      switch (selectedCategory) {
+        case Emotion.shape:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fexcited_shape-removebg-preview.png?alt=media&token=85fadfb8-7006-44d0-a39d-b3fd6070bb96';
+          break;
+        case Emotion.fruit:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fexcited_fruit-removebg-preview.png?alt=media&token=0284bce2-aa88-4766-97fb-5d5d2248cf31';
+          break;
+        case Emotion.animal:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fexcited_animal-removebg-preview.png?alt=media&token=48442937-5504-4392-88a9-039aef405f14';
+          break;
+        case Emotion.weather:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fexcited_weather-removebg-preview.png?alt=media&token=5de71f38-1178-4e3c-887e-af07547caba9';
+          break;
+      }
+    } else if (happinessIndex >= 60) {
+      // 행복한 경우 - happy 이미지
+      switch (selectedCategory) {
+        case Emotion.shape:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fhappy_shape-removebg-preview.png?alt=media&token=5a8aa9dd-6ea5-4132-95af-385340846076';
+          break;
+        case Emotion.fruit:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fhappy_fruit-removebg-preview.png?alt=media&token=d10a503b-fee7-4bc2-b141-fd4b33dae1f1';
+          break;
+        case Emotion.animal:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fhappy_animal-removebg-preview.png?alt=media&token=66ff8e2d-d941-4fd7-9d7f-9766db03cbd5';
+          break;
+        case Emotion.weather:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fhappy_weather-removebg-preview.png?alt=media&token=fd77e998-6f47-459a-bd1c-458e309fed41';
+          break;
+      }
+    } else if (happinessIndex >= 40) {
+      // 보통인 경우 - neutral 이미지
+      switch (selectedCategory) {
+        case Emotion.shape:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5';
+          break;
+        case Emotion.fruit:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39';
+          break;
+        case Emotion.animal:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f';
+          break;
+        case Emotion.weather:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f';
+          break;
+      }
+    } else if (happinessIndex >= 20) {
+      // 슬픈 경우 - sad 이미지
+      switch (selectedCategory) {
+        case Emotion.shape:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fsad_shape-removebg-preview.png?alt=media&token=acbc7284-1126-4428-a3b2-f8b6e7932b98';
+          break;
+        case Emotion.fruit:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fsad_fruit-removebg-preview.png?alt=media&token=e9e0b0f7-6590-4209-a7d1-26377eb33c05';
+          break;
+        case Emotion.animal:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fsad_animal-removebg-preview.png?alt=media&token=04c99bd8-8ad4-43de-91cd-3b7354780677';
+          break;
+        case Emotion.weather:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fsad_weather-removebg-preview.png?alt=media&token=aa972b9a-8952-4dc7-abe7-692ec7be0d16';
+          break;
+      }
+    } else {
+      // 매우 슬픈 경우 - angry 이미지
+      switch (selectedCategory) {
+        case Emotion.shape:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fangry_shape-removebg-preview.png?alt=media&token=92a25f79-4c1d-4b5d-9e5c-2f469e56cefa';
+          break;
+        case Emotion.fruit:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fangry_fruit-removebg-preview.png?alt=media&token=679778b9-5a1b-469a-8e86-b01585cb1ee2';
+          break;
+        case Emotion.animal:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fangry_animal-removebg-preview.png?alt=media&token=9bde31db-8801-4af0-9368-e6ce4a35fbac';
+          break;
+        case Emotion.weather:
+          happinessEmojiUrl = 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fangry_weather-removebg-preview.png?alt=media&token=2f4c6212-697d-49b7-9d5e-ae1f2b1fa84e';
+          break;
+      }
+    }
     
     // 행복 색상 계산 (빨강에서 초록으로)
     final red = max(0, 255 - (happinessIndex * 2.55));
@@ -164,7 +357,7 @@ class _MyPageState extends State<MyPage> {
     return {
       'totalDays': totalDays,
       'happinessIndex': happinessIndex,
-      'happinessEmoji': happinessEmoji,
+      'happinessEmojiUrl': happinessEmojiUrl,
       'happinessColor': happinessColor,
       'gaugeAngle': gaugeAngle
     };
@@ -186,9 +379,6 @@ class _MyPageState extends State<MyPage> {
       );
       
       appState.setUserSubscription(UserSubscription.premium);
-      setState(() {
-        _isPremiumModalOpen = false;
-      });
       
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -270,12 +460,9 @@ class _MyPageState extends State<MyPage> {
     return 0;
   }
 
-  // 프리미엄 카테고리 여부 확인
-  bool _isPremiumCategory(Emotion emotion) {
-    return emotion != Emotion.shape;
-  }
 
-  Widget _buildEmojiDialog(BuildContext context) {
+
+  Widget _buildEmojiDialog(BuildContext context, AppState appState) {
     return Dialog(
       backgroundColor: const Color(0xFFF5EFE6),
       shape: RoundedRectangleBorder(
@@ -311,16 +498,22 @@ class _MyPageState extends State<MyPage> {
             ),
             const SizedBox(height: 20),
             
-            // 카테고리 버튼들
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // 도형을 첫 번째로 이동
-                _buildCategoryButton(Emotion.shape),
-                _buildCategoryButton(Emotion.fruit),
-                _buildCategoryButton(Emotion.animal),
-                _buildCategoryButton(Emotion.weather),
-              ],
+            // 카테고리 버튼들 - 가로 스크롤
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  const SizedBox(width: 8), // 왼쪽 여백
+                  _buildCategoryButton(Emotion.shape, appState),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton(Emotion.fruit, appState),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton(Emotion.animal, appState),
+                  const SizedBox(width: 8),
+                  _buildCategoryButton(Emotion.weather, appState),
+                  const SizedBox(width: 8), // 오른쪽 여백
+                ],
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -334,36 +527,39 @@ class _MyPageState extends State<MyPage> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (_isPremiumCategory(_selectedEmotion))
-                  const Padding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: Text(
-                      '프리미엄 전용',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  ),
               ],
             ),
             const SizedBox(height: 16),
 
-            // 선택된 이모지들
+            // 선택된 Firebase 이미지들
             Container(
               padding: const EdgeInsets.all(12),
               child: Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  for (var emoji in _emojiCategories[_selectedEmotion]!)
-                    Text(
-                      emoji,
-                      style: TextStyle(
-                        fontSize: 28,
-                        color: _isPremiumCategory(_selectedEmotion) 
-                          ? Colors.black38
-                          : Colors.black,
+                  for (var imageUrl in _firebaseImageUrls[_selectedEmotion]!)
+                    Container(
+                      width: 56,
+                      height: 56,
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: AppColors.muted,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.error,
+                              size: 24,
+                              color: Colors.grey,
+                            ),
+                          );
+                        },
                       ),
                     ),
                 ],
@@ -410,51 +606,50 @@ class _MyPageState extends State<MyPage> {
   }
 
   // 카테고리 버튼 위젯
-  Widget _buildCategoryButton(Emotion emotion) {
-    return TextButton(
-      onPressed: () => _handleCategorySelect(emotion),
-      style: ButtonStyle(
-        backgroundColor: MaterialStateProperty.all(
-          _selectedEmotion == emotion 
-            ? const Color(0xFFB68D6B)
-            : Colors.transparent,
-        ),
-        padding: MaterialStateProperty.all(
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        ),
-        shape: MaterialStateProperty.all(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+  Widget _buildCategoryButton(Emotion emotion, AppState appState) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 80), // 최소 너비 설정
+      child: TextButton(
+                                        onPressed: () => _handleCategorySelect(emotion, appState),
+        style: ButtonStyle(
+          backgroundColor: MaterialStateProperty.all(
+            _selectedEmotion == emotion 
+              ? const Color(0xFFB68D6B)
+              : Colors.transparent,
           ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Text(
-            _emotionLabels[emotion]!,
-            style: TextStyle(
-              color: _selectedEmotion == emotion ? Colors.white : Colors.black,
-              fontWeight: FontWeight.w500,
+          padding: MaterialStateProperty.all(
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // 패딩 조정
+          ),
+          shape: MaterialStateProperty.all(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
           ),
-          if (_isPremiumCategory(emotion))
-            const Padding(
-              padding: EdgeInsets.only(left: 4),
-              child: Icon(
-                Icons.lock,
-                size: 16,
-                color: Colors.black54,
+        ),
+        child: Column( // Row를 Column으로 변경
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _emotionLabels[emotion]!,
+              style: TextStyle(
+                color: _selectedEmotion == emotion ? Colors.white : Colors.black,
+                fontWeight: FontWeight.w500,
+                fontSize: 13, // 폰트 크기 조정
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    print('MyPage build 호출됨'); // 디버깅용 로그
     return Consumer<AppState>(
       builder: (context, appState, child) {
+        print('MyPage Consumer builder 호출됨'); // 디버깅용 로그
+        print('현재 사용자명: ${appState.userName}'); // 디버깅용 로그
         final happinessData = _calculateHappinessData(appState);
         
         return Material(
@@ -519,11 +714,20 @@ class _MyPageState extends State<MyPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        _userName,
+                                        appState.userName,
                                         style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w600,
                                         ),
+                                      ),
+                                      // 디버깅용 로그
+                                      Builder(
+                                        builder: (context) {
+                                          print('마이페이지에서 사용자명 표시: ${appState.userName}');
+                                          print('AppState 인증 상태: ${appState.isAuthenticated}');
+                                          print('AppState 현재 뷰: ${appState.currentView}');
+                                          return const SizedBox.shrink();
+                                        },
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -538,36 +742,9 @@ class _MyPageState extends State<MyPage> {
                                 ),
                                 Row(
                                   children: [
-                                    // Subscription Status
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(20),
-                                        gradient: appState.userSubscription == UserSubscription.premium
-                                            ? const LinearGradient(
-                                                colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
-                                              )
-                                            : null,
-                                        color: appState.userSubscription != UserSubscription.premium
-                                            ? AppColors.muted
-                                            : null,
-                                      ),
-                                      child: Text(
-                                        appState.userSubscription == UserSubscription.premium ? '프리미엄' : '노멀',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: appState.userSubscription == UserSubscription.premium
-                                              ? Colors.white
-                                              : AppColors.mutedForeground,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
                                     AppButton(
                                       onPressed: () {
                                         setState(() {
-                                          _tempName = _userName;
                                           _tempBirthday = appState.userBirthday;
                                           _isProfileDialogOpen = true;
                                         });
@@ -635,17 +812,50 @@ class _MyPageState extends State<MyPage> {
                                 Center(
                                   child: Column(
                                     children: [
-                                      SizedBox(
-                                        width: 200,
-                                        height: 120,
-                                        child: CustomPaint(
-                                          painter: HappinessGaugePainter(
-                                            happinessIndex: happinessData['happinessIndex'],
-                                            gaugeAngle: happinessData['gaugeAngle'],
-                                            happinessColor: happinessData['happinessColor'],
-                                            happinessEmoji: happinessData['happinessEmoji'],
+                                      Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: 200,
+                                            height: 120,
+                                            child: CustomPaint(
+                                              painter: HappinessGaugePainter(
+                                                happinessIndex: happinessData['happinessIndex'],
+                                                gaugeAngle: happinessData['gaugeAngle'],
+                                                happinessColor: happinessData['happinessColor'],
+                                                happinessEmojiUrl: happinessData['happinessEmojiUrl'],
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          // Firebase 이미지를 바늘 끝에 표시
+                                          Positioned(
+                                            left: 100 + 70 * cos((happinessData['gaugeAngle'] * pi / 180)) - 20,
+                                            top: 100 - 70 * sin((happinessData['gaugeAngle'] * pi / 180)) - 20,
+                                            child: Container(
+                                              width: 40,
+                                              height: 40,
+                                              child: Image.network(
+                                                happinessData['happinessEmojiUrl'],
+                                                fit: BoxFit.contain,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Container(
+                                                    width: 40,
+                                                    height: 40,
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.muted,
+                                                      borderRadius: BorderRadius.circular(20),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.mood,
+                                                      size: 24,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       const SizedBox(height: 16),
                                       Column(
@@ -845,18 +1055,38 @@ class _MyPageState extends State<MyPage> {
                                                   _emotionLabels[_selectedEmotion]!,
                                                   style: const TextStyle(fontSize: 12),
                                                 ),
-                                                if (appState.userSubscription != UserSubscription.premium && 
-                                                    _selectedEmotion != Emotion.shape)
-                                                  const Text('🔒', style: TextStyle(fontSize: 12)),
                                               ],
                                             ),
                                             Row(
                                               children: [
-                                                ...(_emojiCategories[_selectedEmotion]!.take(3).map((emoji) => 
-                                                  Text(emoji, style: const TextStyle(fontSize: 12)))),
-                                                if (_emojiCategories[_selectedEmotion]!.length > 3)
+                                                ...(_firebaseImageUrls[_selectedEmotion]!.take(3).map((imageUrl) => 
+                                                  Container(
+                                                    width: 24,
+                                                    height: 24,
+                                                    margin: const EdgeInsets.only(right: 4),
+                                                    child: Image.network(
+                                                      imageUrl,
+                                                      fit: BoxFit.contain,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return Container(
+                                                          width: 24,
+                                                          height: 24,
+                                                          decoration: BoxDecoration(
+                                                            color: AppColors.muted,
+                                                            borderRadius: BorderRadius.circular(4),
+                                                          ),
+                                                          child: const Icon(
+                                                            Icons.error,
+                                                            size: 16,
+                                                            color: Colors.grey,
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ))),
+                                                if (_firebaseImageUrls[_selectedEmotion]!.length > 3)
                                                   Text(
-                                                    '+${_emojiCategories[_selectedEmotion]!.length - 3}',
+                                                    '+${_firebaseImageUrls[_selectedEmotion]!.length - 3}',
                                                     style: TextStyle(
                                                       fontSize: 12,
                                                       color: AppColors.mutedForeground,
@@ -953,39 +1183,6 @@ class _MyPageState extends State<MyPage> {
                                 ],
                               ),
                               const SizedBox(height: 24),
-                              // 이름 입력
-                              const Text(
-                                '이름',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                              const SizedBox(height: 8),
-                              TextField(
-                                controller: TextEditingController(),  // 초기값 제거
-                                onChanged: (value) => _tempName = value,
-                                decoration: InputDecoration(
-                                  hintText: '이름을 입력하세요.',
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 16,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: AppColors.border),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: AppColors.border),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide(color: AppColors.border),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
                               // 생일 선택
                               const Text(
                                 '생일',
@@ -1153,6 +1350,7 @@ class _MyPageState extends State<MyPage> {
                                   if (day.isCurrentMonth) {
                                     setState(() {
                                       _tempBirthday = day.date;
+                                      _isCalendarVisible = false; // 날짜 선택 시 캘린더 닫기
                                     });
                                   } else {
                                     setState(() {
@@ -1196,7 +1394,7 @@ class _MyPageState extends State<MyPage> {
                 ),
               // 이모티콘 설정 모달
               if (_isEmojiDialogOpen)
-                _buildEmojiDialog(context),
+                _buildEmojiDialog(context, appState),
             ],
           ),
         );
@@ -1292,13 +1490,13 @@ class HappinessGaugePainter extends CustomPainter {
   final int happinessIndex;
   final double gaugeAngle;
   final Color happinessColor;
-  final String happinessEmoji;
+  final String happinessEmojiUrl;
 
   HappinessGaugePainter({
     required this.happinessIndex,
     required this.gaugeAngle,
     required this.happinessColor,
-    required this.happinessEmoji,
+    required this.happinessEmojiUrl,
   });
 
   @override
@@ -1368,22 +1566,8 @@ class HappinessGaugePainter extends CustomPainter {
     happyPainter.layout();
     happyPainter.paint(canvas, Offset(size.width - 40, size.height - 10));
     
-    // Draw emoji on needle tip
-    final emojiPainter = TextPainter(
-      text: TextSpan(
-        text: happinessEmoji,
-        style: const TextStyle(fontSize: 20),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    emojiPainter.layout();
-    emojiPainter.paint(
-      canvas,
-      Offset(
-        center.dx + 70 * cos(needleAngle) - emojiPainter.width / 2,
-        center.dy - 70 * sin(needleAngle) - emojiPainter.height / 2,
-      ),
-    );
+    // Firebase 이미지는 CustomPaint에서 직접 그릴 수 없으므로 제거
+    // 대신 위젯에서 별도로 표시
   }
 
   @override

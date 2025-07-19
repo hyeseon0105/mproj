@@ -35,12 +35,34 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   late DateTime currentDate;
   late Map<String, EmotionData> emotionData;
 
-  final Map<Emotion, String> emotionEmojis = {
-    Emotion.fruit: '🍎',
-    Emotion.animal: '🐶',
-    Emotion.shape: '⭐',
-    Emotion.weather: '☀️',
-  };
+  // 사용자가 선택한 카테고리의 이모지만 사용
+  String _getEmotionEmoji(Emotion emotion, AppState appState) {
+    final selectedCategory = appState.selectedEmoticonCategory;
+    
+    // 사용자가 선택한 카테고리와 다른 감정인 경우, 선택된 카테고리의 기본 이모지 사용
+    if (emotion != selectedCategory) {
+      switch (selectedCategory) {
+        case Emotion.fruit:
+          return 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39';
+        case Emotion.animal:
+          return 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f';
+        case Emotion.shape:
+          return 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5';
+        case Emotion.weather:
+          return 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f';
+      }
+    }
+    
+    // 선택된 카테고리와 같은 감정인 경우 원래 이모지 사용
+    final Map<Emotion, String> emotionEmojis = {
+      Emotion.fruit: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
+      Emotion.animal: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
+      Emotion.shape: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
+      Emotion.weather: 'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
+    };
+    
+    return emotionEmojis[emotion] ?? emotionEmojis[Emotion.shape]!;
+  }
 
   final Map<Emotion, Color> emotionColors = {
     Emotion.fruit: const Color(0xFFEA580C), // orange-500
@@ -71,7 +93,12 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     
     final Map<String, EmotionData> sampleData = {};
     final emotions = Emotion.values;
-    final emojis = ['🍎', '🐶', '⭐', '☀️'];
+    final emojis = [
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
+      'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
+    ];
     final random = Random();
     
     // Add some sample entries for the current month
@@ -264,9 +291,21 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                               child: Center(
                                 child: Transform.translate(
                                   offset: const Offset(0, -20),
-                                  child: Text(
-                                    dayData.emoji,
-                                    style: const TextStyle(fontSize: 14),
+                                  child: Consumer<AppState>(
+                                    builder: (context, appState, child) {
+                                      return Image.network(
+                                        _getEmotionEmoji(dayData.emotion, appState),
+                                        width: 24,
+                                        height: 24,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const Text(
+                                            '😊',
+                                            style: TextStyle(fontSize: 12),
+                                          );
+                                        },
+                                      );
+                                    },
                                   ),
                                 ),
                               ),
