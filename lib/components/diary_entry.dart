@@ -14,6 +14,8 @@ import '../services/stt_service.dart';
 import '../services/audio_recorder.dart';
 import 'dart:io';
 import 'dart:async';
+import 'package:path_provider/path_provider.dart'; // 임시 파일 저장을 위한 패키지
+import 'package:image_picker/image_picker.dart'; // 이미지 선택을 위한 패키지
 
 // dart:html은 웹에서만 사용 가능하므로 조건부 import
 
@@ -56,15 +58,18 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
   String _recognizedText = '';
   bool _hasText = false; // 텍스트 입력 여부를 추적하는 변수 추가
   bool _isTranscribing = false; // STT 변환 중 상태
-  StreamSubscription<RecordingState>? _recordingSubscription;
   String _partialText = ''; // 부분 인식 텍스트
-  Timer? _realtimeTimer;
+  String _status = ''; // 녹음 상태 메시지
   
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
   late Emotion _currentEmotion; // ← 이 줄 추가!
 
   final _diaryService = DiaryService();
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  final ImagePicker _imagePicker = ImagePicker();
+  Timer? _recordingTimer;
+  Timer? _statusTimer;
 
   // ImagePicker는 실제 앱에서 image_picker 패키지로 구현
 
@@ -145,15 +150,37 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       });
       _fadeAnimationController.forward();
     }
+
+    // STT 서비스 연결 테스트
+    _testSTTConnection();
+  }
+
+  /// STT 서비스 연결 테스트
+  Future<void> _testSTTConnection() async {
+    try {
+      print('STT 서비스 연결 테스트 시작...');
+      final health = await STTService.healthCheck();
+      print('STT 서비스 연결 성공: $health');
+    } catch (e) {
+      print('STT 서비스 연결 실패: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('STT 서비스에 연결할 수 없습니다: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   @override
   void dispose() {
     _entryController.dispose();
     _fadeAnimationController.dispose();
-    _recordingSubscription?.cancel();
-    _realtimeTimer?.cancel();
-    AudioRecorder.instance.dispose();
+    _recordingTimer?.cancel();
+    _statusTimer?.cancel();
+    _audioRecorder.dispose();
+    
     super.dispose();
   }
 
@@ -283,6 +310,24 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     return '${month}월 ${day}일\n$dayName';
   }
 
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  /// 상태 메시지를 3초 후 자동으로 지우는 메서드
+  void _clearStatusAfterDelay() {
+    _statusTimer?.cancel();
+    _statusTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _status = '';
+        });
+      }
+    });
+  }
+
   Widget _buildImageWidget(String imagePath) {
     Widget errorWidget = Container(
       color: AppColors.muted,
@@ -292,11 +337,34 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       ),
     );
 
-    return Image.network(
-      imagePath,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => errorWidget,
-    );
+    // 백엔드에서 업로드된 이미지인지 확인 (파일명만 있는 경우)
+    if (imagePath.contains('/') || imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      // 로컬 파일 경로 또는 네트워크 이미지
+      if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        // 네트워크 이미지
+        return Image.network(
+          imagePath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => errorWidget,
+        );
+      } else {
+        // 로컬 파일
+        return Image.file(
+          File(imagePath),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => errorWidget,
+        );
+      }
+    } else {
+      // 백엔드에서 업로드된 이미지 (파일명만 있는 경우)
+      // API 엔드포인트를 통해 이미지 조회
+      final String imageUrl = 'http://192.168.43.129:8000/api/images/$imagePath';
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => errorWidget,
+      );
+    }
   }
 
   Future<void> _handleImageUpload() async {
@@ -306,61 +374,149 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       );
       return;
     }
-    // 웹에서만 동작하므로 조건부 처리
-    if (kIsWeb) {
-      // 웹에서는 dart:html을 사용할 수 없으므로 이미지 업로드 기능을 비활성화
-      // 실제 구현에서는 image_picker 패키지를 사용해야 함
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지 업로드 기능은 모바일에서만 사용 가능합니다.')),
+
+    try {
+      // 이미지 소스 선택 다이얼로그
+      final ImageSource? source = await _showImageSourceDialog();
+      if (source == null) return;
+
+      // 이미지 선택
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
       );
-    } else {
-      // 모바일에서는 image_picker 패키지 사용
+
+      if (image != null) {
+        // 백엔드에 이미지 업로드
+        final File imageFile = File(image.path);
+        final String uploadedFilename = await _diaryService.uploadImage(imageFile);
+        
+        setState(() {
+          _uploadedImages.add(uploadedFilename);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('이미지가 성공적으로 업로드되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지 업로드 기능을 구현하려면 image_picker 패키지를 추가하세요.')),
+        SnackBar(
+          content: Text('이미지 업로드에 실패했습니다: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
 
-  void _handleImageDelete(int index) {
-    setState(() {
-      _uploadedImages.removeAt(index);
-    });
+  /// 이미지 소스 선택 다이얼로그
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('이미지 선택'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('카메라'),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('갤러리'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('취소'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
+  Future<void> _handleImageDelete(int index) async {
+    final String imagePath = _uploadedImages[index];
+    
+    try {
+      // 백엔드에서 이미지 삭제
+      final bool success = await _diaryService.deleteImage(imagePath);
+      
+      if (success) {
+        setState(() {
+          _uploadedImages.removeAt(index);
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('이미지가 삭제되었습니다.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('이미지 삭제에 실패했습니다.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('이미지 삭제 오류: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('이미지 삭제 중 오류가 발생했습니다: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _startRecording() async {
     try {
-      final success = await AudioRecorder.instance.startRecording();
+      setState(() {
+        _status = '마이크 권한 확인 중...';
+
+      });
+      final success = await _audioRecorder.startRecording();
       if (success) {
         setState(() {
           _isRecording = true;
           _recordingTime = 0;
           _partialText = '';
+          _status = '마이크 녹음 중...';
         });
-
-        // 녹음 상태 스트림 구독
-        _recordingSubscription = AudioRecorder.instance.stateStream.listen((state) {
-          setState(() {
-            _recordingTime = state.duration;
-          });
-        });
-
-        // 실시간 STT 타이머 시작 (1초마다 청크 변환)
-        _realtimeTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-          if (_isRecording && !_isTranscribing) {
-            await _transcribeChunk();
+        // 타이머로 녹음 시간 관리
+        _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (_isRecording) {
+            setState(() {
+              _recordingTime++;
+            });
           }
         });
       }
     } catch (e) {
       String errorMessage = e.toString();
-      
-      // 권한 관련 오류인 경우 더 자세한 안내
       if (errorMessage.contains('권한')) {
         _showPermissionDialog();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('녹음을 시작할 수 없습니다: $errorMessage'),
+            content: Text('마이크 녹음을 시작할 수 없습니다: $errorMessage'),
             backgroundColor: Colors.red,
           ),
         );
@@ -376,18 +532,19 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
         return AlertDialog(
           title: const Text('마이크 권한 필요'),
           content: const Text(
-            '음성 인식을 위해 마이크 권한이 필요합니다.\n\n'
+            '음성 녹음을 위해 마이크 권한이 필요합니다.\n\n'
             '설정에서 마이크 권한을 허용해주세요.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
               child: const Text('취소'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // 앱 설정으로 이동
                 AppSettings.openAppSettings();
               },
               child: const Text('설정으로 이동'),
@@ -400,55 +557,31 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
 
   Future<void> _stopRecording() async {
     try {
-      // 실시간 타이머 정지
-      _realtimeTimer?.cancel();
-      _realtimeTimer = null;
-
-      final audioFile = await AudioRecorder.instance.stopRecording();
+      setState(() {
+        _status = '마이크 녹음 중지 중...';
+      });
+      _recordingTimer?.cancel();
+      _recordingTimer = null;
+      final audioPath = await _audioRecorder.stopRecording();
       setState(() {
         _isRecording = false;
         _recordingTime = 0;
+        _status = '음성 인식(STT) 변환 중...';
       });
-
-      if (audioFile != null) {
-        // 최종 STT 변환 시작
-        await _transcribeAudio(audioFile);
+      if (audioPath != null) {
+        await _transcribeAudio(File(audioPath));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('녹음을 중지할 수 없습니다: ${e.toString()}'),
+          content: Text('마이크 녹음을 중지할 수 없습니다: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
 
-  /// 청크 단위 STT 변환 (실시간용)
-  Future<void> _transcribeChunk() async {
-    try {
-      // 현재 녹음 파일이 있는지 확인
-      final recordingPath = AudioRecorder.instance.recordingPath;
-      if (recordingPath == null) return;
 
-      final audioFile = File(recordingPath);
-      if (!await audioFile.exists()) return;
-
-      // 청크 변환
-      final result = await STTService.transcribeAudioChunk(audioFile);
-      
-      if (result.success && result.text.isNotEmpty) {
-        setState(() {
-          _partialText = result.text;
-          // 부분 텍스트를 임시로 표시 (회색으로)
-          _entryController.text = _partialText;
-        });
-      }
-    } catch (e) {
-      // 실시간 변환 중 오류는 조용히 처리 (사용자에게 표시하지 않음)
-      print('실시간 STT 오류: $e');
-    }
-  }
 
   Future<void> _transcribeAudio(File audioFile) async {
     setState(() {
@@ -461,25 +594,80 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
       if (result.success && result.text.isNotEmpty) {
         setState(() {
           _recognizedText = result.text;
-          _entryController.text = result.text;
-          _hasText = result.text.trim().isNotEmpty;
+          // 기존 텍스트에 새로운 텍스트 누적 (덮어쓰지 않음)
+          if (_entryController.text.isNotEmpty) {
+            _entryController.text += ' ' + result.text;
+          } else {
+            _entryController.text = result.text;
+          }
+          _hasText = _entryController.text.trim().isNotEmpty;
           _partialText = ''; // 부분 텍스트 초기화
+          _status = '음성 인식 완료!';
         });
+
+        // 3초 후 상태 메시지 자동 제거
+        _clearStatusAfterDelay();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('음성이 텍스트로 변환되었습니다'),
+            content: Text('실제 마이크 음성이 텍스트로 변환되었습니다'),
             backgroundColor: AppColors.primary,
           ),
         );
       } else {
+        setState(() {
+          _status = '음성 인식 실패';
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('음성을 인식할 수 없습니다. 다시 시도해주세요.'),
+            content: Text('실제 마이크 음성을 인식할 수 없습니다. 다시 시도해주세요.'),
             backgroundColor: Colors.orange,
           ),
         );
       }
+    } catch (e) {
+      setState(() {
+        _status = '음성 변환 오류';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('실제 마이크 음성 변환에 실패했습니다: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isTranscribing = false;
+      });
+    }
+  }
+
+  /// 시뮬레이션된 STT 변환 (429 에러 방지용)
+  Future<void> _transcribeAudioSimulated(File audioFile) async {
+    setState(() {
+      _isTranscribing = true;
+    });
+
+    try {
+      // 네트워크 지연 시뮬레이션
+      await Future.delayed(const Duration(seconds: 2));
+      
+      // 시뮬레이션된 변환 결과
+      final simulatedText = '오늘은 정말 좋은 하루였어요. 친구들과 함께 영화를 봤는데 정말 재미있었습니다. 내일도 좋은 하루가 되길 바라요.';
+      
+      setState(() {
+        _recognizedText = simulatedText;
+        _entryController.text = simulatedText;
+        _hasText = simulatedText.trim().isNotEmpty;
+        _partialText = ''; // 부분 텍스트 초기화
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('음성이 텍스트로 변환되었습니다 (시뮬레이션)'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -539,6 +727,140 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildRecordingSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.mic, color: Colors.blue, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '음성 녹음',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isRecording ? _stopRecording : _startRecording,
+                  icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+                  label: Text(_isRecording ? '녹음 중지' : '녹음 시작'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isRecording ? Colors.grey[600] : Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_isRecording) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red[200]!),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '녹음 중... ${_formatDuration(_recordingTime)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.red[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (_isTranscribing) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '음성 변환 중...',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (_status.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _status,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -587,173 +909,191 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Date Display with Voice Recording & Photo Upload Buttons
+                            // Date Display
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Date Display
-                                Row(
-                                  children: [
-                                    if (_isSaved || widget.existingEntry?.entry != null)
-                                      Container(
-                                        width: 48,
-                                        height: 48,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.calendarBg, // 더 부드러운 배경색으로 변경
-                                          borderRadius: BorderRadius.circular(24),
-                                        ),
-                                        child: Center(
-                                          // 이모티콘 크기 키우기 (width: 56, height: 56)
-                                          child: Image.network(
-                                            _currentEmoji,
-                                            width: 150,
-                                            height: 150,
-                                            fit: BoxFit.contain,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return Text(
-                                                '😊',
-                                                style: const TextStyle(fontSize: 56),
-                                              );
-                                            },
-                                          ),
+                                if (_isSaved || widget.existingEntry?.entry != null)
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.calendarBg,
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    child: Center(
+                                      child: Image.network(
+                                        _currentEmoji,
+                                        width: 150,
+                                        height: 150,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Text(
+                                            '😊',
+                                            style: const TextStyle(fontSize: 56),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                if (_isSaved || widget.existingEntry?.entry != null)
+                                  const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _formatDate(widget.selectedDate),
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.foreground,
+                                          height: 1.2,
                                         ),
                                       ),
-                                    if (_isSaved || widget.existingEntry?.entry != null)
-                                      const SizedBox(width: 16),
-                                    // 날짜/요일에 여백 추가
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 8.0), // 왼쪽 여백 추가
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                    ],
+                                  ),
+                                ),
+                                // 업로드 버튼 (3장 미만 & 저장 전만 노출)
+                                if (_uploadedImages.length < 3 && !_isSaved)
+                                  AppButton(
+                                    onPressed: _handleImageUpload,
+                                    variant: ButtonVariant.ghost,
+                                    size: ButtonSize.icon,
+                                    child: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        color: AppColors.primary.withOpacity(0.1),
+                                        border: Border.all(
+                                          color: AppColors.primary.withOpacity(0.2),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.upload,
+                                        size: 20,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(width: 8),
+                                // 녹음 버튼 (저장 전만 노출)
+                                if (!_isSaved)
+                                  AppButton(
+                                    onPressed: _isRecording ? _stopRecording : _startRecording,
+                                    variant: ButtonVariant.ghost,
+                                    size: ButtonSize.icon,
+                                    child: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                        color: _isRecording 
+                                            ? Colors.red.withOpacity(0.1)
+                                            : AppColors.primary.withOpacity(0.1),
+                                        border: Border.all(
+                                          color: _isRecording 
+                                              ? Colors.red.withOpacity(0.2)
+                                              : AppColors.primary.withOpacity(0.2),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        _isRecording ? Icons.stop : Icons.mic,
+                                        size: 20,
+                                        color: _isRecording ? Colors.red : AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            
+
+                            
+                            const SizedBox(height: 24),
+                            
+                            // 녹음 상태 표시 (저장 전만 노출)
+                            if (!_isSaved && (_isRecording || _isTranscribing || _status.isNotEmpty)) ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.calendarBg,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.calendarDateHover),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (_isRecording) ...[
+                                      Row(
                                         children: [
-                                          SizedBox(height: 8),
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
                                           Text(
-                                            _formatDate(widget.selectedDate),
+                                            '녹음 중... ${_formatDuration(_recordingTime)}',
                                             style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.foreground,
-                                              height: 1.2,
+                                              fontSize: 12,
+                                              color: Colors.red[700],
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                  ],
-                                ),
-
-                                // Voice Recording & Photo Upload Buttons
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    // 타이머 (녹음 중일 때만)
-                                    if (_isRecording) ...[
-                                      Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.red.withOpacity(0.2)),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              '${_recordingTime ~/ 60}:${(_recordingTime % 60).toString().padLeft(2, '0')}',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.red,
-                                              ),
+                                    ],
+                                    if (_isTranscribing) ...[
+                                      if (_isRecording) const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 12,
+                                            height: 12,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
                                             ),
-                                            if (_partialText.isNotEmpty) ...[
-                                              const SizedBox(width: 4),
-                                              Container(
-                                                width: 6,
-                                                height: 6,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.green,
-                                                  borderRadius: BorderRadius.circular(3),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '음성 변환 중...',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.blue[700],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
-                                    // 마이크 버튼 (저장 전만 노출)
-                                    if (!_isSaved)
-                                      AppButton(
-                                        onPressed: _isTranscribing ? null : _handleRecordingToggle,
-                                        variant: ButtonVariant.ghost,
-                                        size: ButtonSize.icon,
-                                        child: Container(
-                                          width: 40,
-                                          height: 40,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(20),
-                                            color: _isRecording 
-                                                ? Colors.red
-                                                : _isTranscribing
-                                                    ? Colors.grey
-                                                    : Colors.red.withOpacity(0.1),
-                                            border: Border.all(
-                                              color: _isTranscribing
-                                                  ? Colors.grey.withOpacity(0.2)
-                                                  : Colors.red.withOpacity(0.2),
-                                              width: 2,
+                                    if (_status.isNotEmpty) ...[
+                                      if (_isRecording || _isTranscribing) const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.info_outline, color: Colors.orange, size: 16),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              _status,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.orange[700],
+                                              ),
                                             ),
                                           ),
-                                          child: Center(
-                                            child: _isTranscribing
-                                                ? SizedBox(
-                                                    width: 16,
-                                                    height: 16,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
-                                                    ),
-                                                  )
-                                                : Icon(
-                                                    Icons.mic,
-                                                    size: 20,
-                                                    color: _isRecording ? Colors.white : Colors.red,
-                                                  ),
-                                          ),
-                                        ),
+                                        ],
                                       ),
-                                    const SizedBox(width: 8),
-                                    // 업로드 버튼 (3장 미만 & 저장 전만 노출)
-                                    if (_uploadedImages.length < 3 && !_isSaved)
-                                      AppButton(
-                                        onPressed: _handleImageUpload,
-                                        variant: ButtonVariant.ghost,
-                                        size: ButtonSize.icon,
-                                        child: Container(
-                                          width: 40,
-                                          height: 40,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(20),
-                                            color: AppColors.primary.withOpacity(0.1),
-                                            border: Border.all(
-                                              color: AppColors.primary.withOpacity(0.2),
-                                              width: 2,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            Icons.upload,
-                                            size: 20,
-                                            color: AppColors.primary,
-                                          ),
-                                        ),
-                                      ),
+                                    ],
                                   ],
                                 ),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 24),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
 
                             // Uploaded Images Preview
                             if (_uploadedImages.isNotEmpty) ...[

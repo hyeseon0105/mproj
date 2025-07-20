@@ -99,4 +99,4 @@ def get_fortune():
         return jsonify({'error': '올바른 생년월일을 입력해주세요.'}), 400
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5002)

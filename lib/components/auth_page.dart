@@ -29,14 +29,20 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> handleLogin() async {
     setState(() { errorMessage = ''; });
     try {
+      print('로그인 시도: $email');
+      print('API URL: http://192.168.0.12:8000/auth/login');
+      
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/api/auth/login'),
+        Uri.parse('http://192.168.43.129:8000/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
           'password': password,
         }),
       );
+      
+      print('응답 상태 코드: ${response.statusCode}');
+      print('응답 내용: ${response.body}');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         print('로그인 응답: $data'); // 디버깅용 로그
@@ -62,7 +68,8 @@ class _AuthPageState extends State<AuthPage> {
         setState(() { errorMessage = data['detail'] ?? '로그인 실패'; });
       }
     } catch (e) {
-      setState(() { errorMessage = '서버 연결 실패'; });
+      print('로그인 에러: $e');
+      setState(() { errorMessage = '서버 연결 실패: $e'; });
     }
   }
 
@@ -70,7 +77,7 @@ class _AuthPageState extends State<AuthPage> {
     setState(() { errorMessage = ''; });
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/api/auth/register'),
+        Uri.parse('http://192.168.43.129:8000/api/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': name,
@@ -86,7 +93,8 @@ class _AuthPageState extends State<AuthPage> {
         setState(() { errorMessage = data['detail'] ?? '회원가입 실패'; });
       }
     } catch (e) {
-      setState(() { errorMessage = '서버 연결 실패'; });
+      print('회원가입 에러: $e');
+      setState(() { errorMessage = '서버 연결 실패: $e'; });
     }
   }
 

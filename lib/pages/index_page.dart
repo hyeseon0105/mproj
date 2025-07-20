@@ -6,6 +6,7 @@ import '../components/diary_calendar.dart' as diary_calendar_lib;
 import '../components/diary_entry.dart' as diary_entry_lib;
 import '../components/my_page.dart';
 
+
 class IndexPage extends StatelessWidget {
   const IndexPage({super.key});
 
@@ -33,6 +34,8 @@ class IndexPage extends StatelessWidget {
           
           case CurrentView.mypage:
             return const MyPage();
+          
+
           
           case CurrentView.calendar:
           default:

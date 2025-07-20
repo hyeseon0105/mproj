@@ -131,36 +131,21 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     final dateKey = _getDateKey(day);
     print('Calendar date clicked: $dateKey');
     
+    // 즉시 일기 작성 화면으로 이동 (API 호출 없이)
+    if (widget.onDateSelect != null) {
+      widget.onDateSelect!(dateKey);
+    } else {
+      final appState = Provider.of<AppState>(context, listen: false);
+      appState.handleDateSelect(dateKey);
+    }
+    
+    // 백그라운드에서 일기 데이터 조회 (선택사항)
     try {
       final diaryService = DiaryService();
       final diaryData = await diaryService.getDiaryByDate(dateKey);
-      
-      if (diaryData != null) {
-        // 일기가 있는 경우
-        if (widget.onDateSelect != null) {
-          widget.onDateSelect!(dateKey);
-        } else {
-          final appState = Provider.of<AppState>(context, listen: false);
-          appState.handleDateSelect(dateKey);
-        }
-      } else {
-        // 일기가 없는 경우 - 새 일기 작성 모드로
-        if (widget.onDateSelect != null) {
-          widget.onDateSelect!(dateKey);
-        } else {
-          final appState = Provider.of<AppState>(context, listen: false);
-          appState.handleDateSelect(dateKey);
-        }
-      }
+      print('일기 조회 결과: ${diaryData != null ? "있음" : "없음"}');
     } catch (e) {
       print('일기 조회 중 오류 발생: $e');
-      // 에러가 발생해도 일기 작성 화면으로 이동
-      if (widget.onDateSelect != null) {
-        widget.onDateSelect!(dateKey);
-      } else {
-        final appState = Provider.of<AppState>(context, listen: false);
-        appState.handleDateSelect(dateKey);
-      }
     }
   }
 
@@ -550,142 +535,143 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     final month = currentDate.month;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: double.infinity),
       color: AppColors.background,
       padding: const EdgeInsets.all(16),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 448), // max-w-md
-          child: Column(
-            children: [
-              // Header with Logo and Settings
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Logo
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16), // 원하는 만큼 조절 (예: 16)
-                    child: Container(
-                      height: 50,
-                      child: Image.asset(
-                        'assets/images/logo.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                  // Settings Button
-                  AppButton(
-                    onPressed: widget.onSettingsClick,
-                    variant: ButtonVariant.ghost,
-                    size: ButtonSize.icon,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Icon(
-                        Icons.settings,
-                        size: 20,
-                        color: AppColors.foreground,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Calendar Card
-              AppCard(
-                backgroundColor: AppColors.calendarBg,
-                borderRadius: BorderRadius.circular(24),
-                padding: const EdgeInsets.all(24),
-                child: Column(
+      child: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 448), // max-w-md
+            child: Column(
+              children: [
+                // Header with Logo and Settings
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Month Navigation
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        AppButton(
-                          onPressed: () => _navigateMonth('prev'),
-                          variant: ButtonVariant.ghost,
-                          size: ButtonSize.icon,
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(Icons.chevron_left, size: 16),
-                          ),
+                    // Logo
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16), // 원하는 만큼 조절 (예: 16)
+                      child: Container(
+                        height: 50,
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          fit: BoxFit.contain,
                         ),
-                        Text(
-                          '$year.${month.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.foreground,
-                          ),
-                        ),
-                        AppButton(
-                          onPressed: () => _navigateMonth('next'),
-                          variant: ButtonVariant.ghost,
-                          size: ButtonSize.icon,
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Icon(Icons.chevron_right, size: 16),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
-
-                    // Day Headers
-                    GridView.count(
-                      crossAxisCount: 7,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      childAspectRatio: 1,
-                      mainAxisSpacing: 4,
-                      crossAxisSpacing: 4,
-                      children: [
-                        ...dayNames.map((day) => Container(
-                          height: 32,
-                          alignment: Alignment.center,
-                          child: Text(
-                            day,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.mutedForeground,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        )),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Calendar Grid
-                    GridView.count(
-                      crossAxisCount: 7,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      childAspectRatio: 1,
-                      mainAxisSpacing: 4,
-                      crossAxisSpacing: 4,
-                      children: _renderCalendarDays(),
+                    // Settings Button
+                    AppButton(
+                      onPressed: widget.onSettingsClick,
+                      variant: ButtonVariant.ghost,
+                      size: ButtonSize.icon,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Icon(
+                          Icons.settings,
+                          size: 20,
+                          color: AppColors.foreground,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 24),
 
-              // Today's Fortune Section
-              _renderFortuneSection(),
-            ],
+                // Calendar Card
+                AppCard(
+                  backgroundColor: AppColors.calendarBg,
+                  borderRadius: BorderRadius.circular(24),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      // Month Navigation
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          AppButton(
+                            onPressed: () => _navigateMonth('prev'),
+                            variant: ButtonVariant.ghost,
+                            size: ButtonSize.icon,
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(Icons.chevron_left, size: 16),
+                            ),
+                          ),
+                          Text(
+                            '$year.${month.toString().padLeft(2, '0')}',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.foreground,
+                            ),
+                          ),
+                          AppButton(
+                            onPressed: () => _navigateMonth('next'),
+                            variant: ButtonVariant.ghost,
+                            size: ButtonSize.icon,
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Icon(Icons.chevron_right, size: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Day Headers
+                      GridView.count(
+                        crossAxisCount: 7,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        childAspectRatio: 1,
+                        mainAxisSpacing: 4,
+                        crossAxisSpacing: 4,
+                        children: [
+                          ...dayNames.map((day) => Container(
+                            height: 32,
+                            alignment: Alignment.center,
+                            child: Text(
+                              day,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.mutedForeground,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          )),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Calendar Grid
+                      GridView.count(
+                        crossAxisCount: 7,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        childAspectRatio: 1,
+                        mainAxisSpacing: 4,
+                        crossAxisSpacing: 4,
+                        children: _renderCalendarDays(),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Today's Fortune Section
+                _renderFortuneSection(),
+              ],
+            ),
           ),
         ),
       ),

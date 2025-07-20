@@ -99,6 +99,10 @@ async def create_post(post_data: PostCreate):
             detail=f"일기 작성 중 오류가 발생했습니다: {str(e)}"
         )
 
+
+
+
+
 @router.get("/", response_model=List[PostListResponse])
 async def get_posts():
     """일기 목록 조회"""
@@ -166,7 +170,7 @@ async def get_post_detail(post_id: str):
                 )
         
         collection = mongodb.get_posts_collection()
-        if not collection:
+        if collection is None:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="데이터베이스 컬렉션을 가져올 수 없습니다"
@@ -396,7 +400,122 @@ async def get_posts_by_date(date: str):
             detail=f"일기 목록 조회 중 오류가 발생했습니다: {str(e)}"
         )
 
-@router.get("/health", status_code=status.HTTP_200_OK)
+@router.post("/upload-image", response_model=ImageUploadResponse)
+async def upload_image(file: UploadFile = File(...)):
+    """이미지 업로드"""
+    try:
+        # 파일 검증 (더 유연하게)
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+        file_extension = ''
+        
+        if file.filename:
+            file_extension = os.path.splitext(file.filename.lower())[1]
+        
+        # content_type이 없거나 이미지가 아닌 경우 파일 확장자로 검증
+        if (not file.content_type or not file.content_type.startswith('image/')) and file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="이미지 파일만 업로드할 수 있습니다 (jpg, jpeg, png, gif, bmp, webp)"
+            )
+        
+        # 파일 크기 검증 (10MB 제한)
+        if file.size and file.size > 10 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="파일 크기는 10MB를 초과할 수 없습니다"
+            )
+        
+        # 임시 파일로 저장
+        temp_filename = await image_utils.save_temp_image(file)
+        
+        # 파일 크기 가져오기
+        temp_path = os.path.join("uploads/temp", temp_filename)
+        file_size = os.path.getsize(temp_path) if os.path.exists(temp_path) else 0
+        
+        return ImageUploadResponse(
+            message="이미지가 성공적으로 업로드되었습니다",
+            filename=temp_filename,
+            file_size=file_size
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"이미지 업로드 중 오류가 발생했습니다: {str(e)}"
+        )
+
+@router.delete("/delete-image/{filename}", response_model=ImageDeleteResponse)
+async def delete_image(filename: str):
+    """이미지 삭제"""
+    try:
+        # 임시 파일 삭제
+        if image_utils.delete_temp_file(filename):
+            return ImageDeleteResponse(
+                message="이미지가 성공적으로 삭제되었습니다",
+                filename=filename
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="임시 파일을 찾을 수 없습니다"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"이미지 삭제 중 오류가 발생했습니다: {str(e)}"
+        )
+
+@router.get("/image/{filename:path}")
+async def get_image(filename: str):
+    """이미지 파일 조회 (임시 또는 영구)"""
+    try:
+        import os
+        
+        # 현재 스크립트 위치 기준으로 절대 경로 생성
+        current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        
+        # 디버깅을 위한 로그
+        print(f"이미지 조회 요청: {filename}")
+        print(f"현재 디렉토리: {current_dir}")
+        
+        # 임시 파일 경로 확인
+        temp_path = os.path.join(current_dir, "uploads/temp", filename)
+        print(f"임시 파일 경로: {temp_path}")
+        print(f"임시 파일 존재: {os.path.exists(temp_path)}")
+        
+        if os.path.exists(temp_path):
+            from fastapi.responses import FileResponse
+            return FileResponse(temp_path)
+        
+        # 영구 파일 경로 확인
+        permanent_path = os.path.join(current_dir, "uploads/images", filename)
+        print(f"영구 파일 경로: {permanent_path}")
+        print(f"영구 파일 존재: {os.path.exists(permanent_path)}")
+        
+        if os.path.exists(permanent_path):
+            from fastapi.responses import FileResponse
+            return FileResponse(permanent_path)
+        
+        # 파일이 없으면 404
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="이미지 파일을 찾을 수 없습니다"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"이미지 조회 중 오류가 발생했습니다: {str(e)}"
+        )
+
+@router.get("/status/health", status_code=status.HTTP_200_OK)
 async def health_check():
     """헬스 체크"""
     try:
@@ -404,7 +523,7 @@ async def health_check():
             mongodb.connect()
         
         collection = mongodb.get_posts_collection()
-        if not collection:
+        if collection is None:
             return {
                 "status": "unhealthy", 
                 "database": "collection_error",
