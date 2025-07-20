@@ -14,10 +14,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     email: str
-<<<<<<< HEAD
-=======
     birthday: str  # 생일 추가 (YYYY-MM-DD 형식)
->>>>>>> origin/main
 
 class UserLogin(BaseModel):
     email: str
@@ -32,20 +29,13 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     email: Optional[str] = None
-<<<<<<< HEAD
     birthday: Optional[str] = None
-=======
-    birthday: Optional[str] = None  # 생일 추가
->>>>>>> origin/main
 
 class UserResponse(BaseModel):
     id: str
     username: str
     email: str
-<<<<<<< HEAD
-=======
     birthday: str
->>>>>>> origin/main
     created_at: datetime
 
 @router.post("/register")
@@ -68,10 +58,7 @@ async def register(user: UserCreate):
         "username": user.username,
         "password": hashed_password,  # 해싱된 패스워드 저장
         "email": user.email,
-<<<<<<< HEAD
-=======
         "birthday": user.birthday,  # 생일 추가
->>>>>>> origin/main
         "created_at": datetime.utcnow()
     }
     
@@ -97,29 +84,19 @@ async def login(user_credentials: UserLogin):
             detail="이메일 또는 패스워드가 잘못되었습니다"
         )
     
-<<<<<<< HEAD
-    # JWT 토큰 생성 (email 기반)
-    access_token = create_access_token(data={"sub": user["email"]})
-=======
     # JWT 토큰 생성 (user_id와 email 포함)
     access_token = create_access_token(data={
         "sub": user["email"],
         "user_id": user["id"]
     })
->>>>>>> origin/main
     
     # 사용자 정보 (패스워드 제외)
     user_info = {
         "id": user.get("id", str(user["_id"])),  # 단순 ID 또는 기존 ObjectId
         "username": user["username"],
         "email": user["email"],
-<<<<<<< HEAD
         "created_at": user["created_at"],
         "birthday": user.get("birthday")  # 생일 정보 추가
-=======
-        "birthday": user.get("birthday", ""),  # 생일 추가
-        "created_at": user["created_at"]
->>>>>>> origin/main
     }
     
     return {
@@ -139,10 +116,7 @@ async def get_all_users():
             "id": user.get("id", str(user["_id"])),  # 단순 ID 우선, 없으면 ObjectId
             "username": user["username"],
             "email": user["email"],
-<<<<<<< HEAD
-=======
             "birthday": user.get("birthday", ""),  # 생일 추가
->>>>>>> origin/main
             "created_at": user["created_at"]
         }
         user_list.append(user_data)
@@ -171,10 +145,7 @@ async def get_user_by_id(user_id: str):
             "id": user.get("id", str(user["_id"])),
             "username": user["username"],
             "email": user["email"],
-<<<<<<< HEAD
-=======
             "birthday": user.get("birthday", ""),  # 생일 추가
->>>>>>> origin/main
             "created_at": user["created_at"]
         }
     except HTTPException:
@@ -194,10 +165,7 @@ async def get_user_by_username(username: str):
         "id": str(user["_id"]),
         "username": user["username"],
         "email": user["email"],
-<<<<<<< HEAD
-=======
         "birthday": user.get("birthday", ""),  # 생일 추가
->>>>>>> origin/main
         "created_at": user["created_at"]
     }
 
@@ -258,10 +226,7 @@ async def update_user(user_id: str, user_update: UserUpdate):
                 "id": str(updated_user["_id"]) if updated_user and "_id" in updated_user else None,
                 "username": updated_user["username"] if updated_user and "username" in updated_user else None,
                 "email": updated_user["email"] if updated_user and "email" in updated_user else None,
-<<<<<<< HEAD
-=======
                 "birthday": updated_user.get("birthday", "") if updated_user else None,
->>>>>>> origin/main
                 "created_at": updated_user["created_at"] if updated_user and "created_at" in updated_user else None,
                 "updated_at": updated_user.get("updated_at") if updated_user else None
             }
@@ -328,8 +293,6 @@ async def delete_user_by_username(username: str):
         }
     }
 
-<<<<<<< HEAD
-=======
 @router.get("/user/profile")
 async def get_user_profile(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """현재 로그인한 사용자의 프로필 정보 조회"""
@@ -441,4 +404,3 @@ async def update_user_profile(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
 
->>>>>>> origin/main

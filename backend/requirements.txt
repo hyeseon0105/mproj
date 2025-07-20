@@ -21,9 +21,5 @@ numpy
 python-dotenv==1.0.0
 requests>=2.32.2
 aiofiles
-<<<<<<< HEAD
 
-
-=======
 httpx==0.25.2
->>>>>>> origin/main

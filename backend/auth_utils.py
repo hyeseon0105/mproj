@@ -57,9 +57,6 @@ def verify_token(token: str) -> dict:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="토큰이 유효하지 않습니다",
             headers={"WWW-Authenticate": "Bearer"},
-<<<<<<< HEAD
-        ) 
-=======
         )
 
 def get_user_id_from_token(token: str) -> Optional[int]:
@@ -74,4 +71,3 @@ def get_user_id_from_token(token: str) -> Optional[int]:
         return int(user_id)
     except (JWTError, ValueError):
         return None 
->>>>>>> origin/main

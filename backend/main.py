@@ -2,13 +2,8 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from routes.auth import router as auth_router
-<<<<<<< HEAD
 from post.routes.posts import router as posts_router
 from post.database.mongodb import init_mongodb
-=======
-from routes.user_settings import router as user_settings_router
-from post.routes.posts import router as posts_router
->>>>>>> origin/main
 import os
 # from routes.asr import router as asr_router  # ASR 라우터 제거
 from routes.images import router as images_router
@@ -36,10 +31,6 @@ if os.path.exists("uploads"):
 
 # 라우터 등록
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
-<<<<<<< HEAD
-=======
-app.include_router(user_settings_router, prefix="/api/user-settings", tags=["user-settings"])
->>>>>>> origin/main
 app.include_router(posts_router, prefix="/api/posts", tags=["posts"])
 app.include_router(images_router, prefix="/api/images", tags=["images"])
 
@@ -55,17 +46,12 @@ async def startup_event():
         os.makedirs(directory, exist_ok=True)
         print(f"[OK] 업로드 디렉토리 생성: {directory}")
     
-<<<<<<< HEAD
     # MongoDB 초기화
     success = init_mongodb()
     if success:
         print("[OK] MongoDB 연결 성공")
     else:
         print("[WARNING] MongoDB 연결 실패 - 일부 기능이 제한될 수 있습니다")
-=======
-    # mini-project 데이터베이스 사용 (database.py에서 설정됨)
-    print("[OK] mini-project 데이터베이스 사용")
->>>>>>> origin/main
 
 # 루트 경로
 @app.get("/")
@@ -74,11 +60,7 @@ async def root():
     return {
         "message": "AI Mini Implementation API에 오신 것을 환영합니다",
         "version": "1.0.0",
-<<<<<<< HEAD
         "features": ["인증 시스템", "포스트 시스템", "이미지 업로드"],
-=======
-        "features": ["인증 시스템", "포스트 시스템", "이미지 업로드", "사용자 설정"],
->>>>>>> origin/main
         "docs": "/docs",
         "redoc": "/redoc"
     }
@@ -88,49 +70,33 @@ async def root():
 async def asr_recognize(file: UploadFile = File(..., alias="audio"), language: str = Form("ko")):
     """음성-텍스트 변환"""
     try:
-        from transformers import pipeline
-        import tempfile
-        import os
+        import httpx
+        import logging
         
-        # Whisper 모델 로드 (최초 1회만)
-        asr_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-medium")
+        # 로깅 설정
+        logger = logging.getLogger(__name__)
+        logger.info(f"ASR 요청 받음: 파일명={file.filename}, 크기={file.size if hasattr(file, 'size') else 'unknown'}")
         
-        # 파일 확장자 확인 (filename이 None일 수 있음)
-        file_extension = ".m4a"  # 기본값
-        if file.filename:
-            file_extension = os.path.splitext(file.filename)[1].lower()
-            if file_extension not in ['.wav', '.m4a', '.mp3', '.flac']:
-                file_extension = ".m4a"  # 기본값으로 설정
-        
-        # 임시 파일로 저장
-        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp:
-            content = await file.read()
-            tmp.write(content)
-            tmp_path = tmp.name
-        
-        try:
-            # 음성 인식
-            result = asr_pipeline(tmp_path)
-            text = result["text"] if isinstance(result, dict) else result
+        # STT 서비스로 파일 전송
+        async with httpx.AsyncClient() as client:
+            file_content = await file.read()
+            logger.info(f"파일 내용 읽음: {len(file_content)} bytes")
             
-            # 임시 파일 삭제
-            os.unlink(tmp_path)
+            files = {"audio": (file.filename or "audio.m4a", file_content, file.content_type or "audio/m4a")}
+            logger.info(f"STT 서비스로 전송: http://localhost:5002/stt/transcribe")
             
-            return {
-                "success": True,
-                "text": text,
-                "language": "ko",
-                "duration": 0.0,
-                "segments": [],
-                "timestamp": ""
-            }
-        except Exception as e:
-            # 임시 파일 삭제
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-            raise e
+            response = await client.post("http://localhost:5002/stt/transcribe", files=files)
+            logger.info(f"STT 서비스 응답: 상태코드={response.status_code}")
             
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"STT 성공: 텍스트 길이={len(result.get('text', ''))}")
+                return result
+            else:
+                logger.error(f"STT 서비스 오류: {response.status_code} - {response.text}")
+                raise HTTPException(status_code=response.status_code, detail=f"STT 서비스 오류: {response.text}")
     except Exception as e:
+        logger.error(f"ASR 처리 오류: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"ASR 처리 오류: {str(e)}")
 
 @app.get("/api/asr/supported-languages")
@@ -160,17 +126,8 @@ async def health_check():
         "message": "API가 정상적으로 동작 중입니다",
         "services": {
             "auth": "available",
-<<<<<<< HEAD
-<<<<<<< HEAD
-            "posts": "available"
-=======
-            "posts": "available",
-            "user-settings": "available"
->>>>>>> origin/main
-=======
             "posts": "available",
             "asr": "available"
->>>>>>> ec3101fac74b54c58bff6fbb00dcf6d5e01fc55e
         }
     }
 
