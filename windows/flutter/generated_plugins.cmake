@@ -3,10 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-<<<<<<< HEAD
   permission_handler_windows
-=======
->>>>>>> origin/main
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
