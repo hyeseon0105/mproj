@@ -35,9 +35,7 @@ class _AuthPageState extends State<AuthPage> {
       print('API URL: http://192.168.0.12:8000/auth/login');
       
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/api/auth/login'),
         Uri.parse('http://localhost:8000/api/auth/login'),
-        Uri.parse('http://192.168.43.129:8000/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -81,9 +79,7 @@ class _AuthPageState extends State<AuthPage> {
     setState(() { errorMessage = ''; });
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/api/auth/register'),
         Uri.parse('http://localhost:8000/api/auth/register'),
-        Uri.parse('http://192.168.43.129:8000/api/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': name,
@@ -234,7 +230,6 @@ class _AuthPageState extends State<AuthPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '이메일',
                                     '이름',
                                     style: TextStyle(
                                       color: AppColors.foreground,
@@ -438,7 +433,6 @@ class _AuthPageState extends State<AuthPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '비밀번호',
                                     '비밀번호 확인',
                                     style: TextStyle(
                                       color: AppColors.foreground,

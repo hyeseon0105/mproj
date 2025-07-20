@@ -82,9 +82,9 @@ class _MyPageState extends State<MyPage> {
     try {
       final userData = await UserService.getUserProfile();
       setState(() {
-        _userName = userData['username'] ?? '사용자';
+        _userName = userData?['username'] ?? '사용자';
         _tempName = _userName;
-        final birthdayStr = userData['birthday'];
+        final birthdayStr = userData?['birthday'];
         if (birthdayStr != null && birthdayStr.isNotEmpty) {
           final birthday = UserService.parseBirthday(birthdayStr);
           if (birthday != null) {
@@ -142,8 +142,8 @@ class _MyPageState extends State<MyPage> {
           : null;
       
       await UserService.updateUserProfile(
-        username: _tempName,
-        birthday: birthdayStr,
+        name: _tempName,
+        birthday: _tempBirthday,
       );
       
       setState(() {
@@ -814,7 +814,7 @@ class _MyPageState extends State<MyPage> {
                                     Switch(
                                       value: appState.emoticonEnabled,
                                       onChanged: (value) async {
-                                        await appState.setEmoticonEnabled(value);
+                                        appState.setEmoticonEnabled(value);
                                       },
                                       activeColor: AppColors.primary,
                                     ),

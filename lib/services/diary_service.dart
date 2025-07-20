@@ -3,7 +3,40 @@ import 'package:http/http.dart' as http;
 import '../models/app_state.dart';
 
 class DiaryService {
-  static const String baseUrl = 'http://10.0.2.2:8000'; // FastAPI 서버 주소 (Android 에뮬레이터용)
+  static const String baseUrl = 'http://localhost:8000'; // FastAPI 서버 주소
+
+  // 모든 일기 목록 조회
+  static Future<List<Map<String, dynamic>>> getDiaryEntries() async {
+    try {
+      print('일기 목록 조회 API 호출 시작');
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/posts/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('API 응답 상태 코드: ${response.statusCode}');
+      print('API 응답 내용: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((item) => {
+          'date': item['created_at']?.toString().split('T')[0] ?? '',
+          'emotion': item['emotion'] ?? 'shape',
+          'emoji': item['emoji'] ?? '⭐',
+          'entry': item['content'] ?? '',
+          'images': List<String>.from(item['images']?.map((img) => img['file_path']) ?? []),
+        }).toList();
+      } else {
+        print('일기 목록 조회 실패: ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      print('API 호출 중 에러 발생: $e');
+      return [];
+    }
+  }
 
   Future<String> createDiary({
     required String content,
