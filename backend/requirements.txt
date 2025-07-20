@@ -1,25 +1,78 @@
+# # FastAPI 관련 의존성
+# fastapi==0.104.1
+# uvicorn[standard]==0.24.0
+# pydantic==2.5.0
+# python-multipart==0.0.6
+
+# # MongoDB 관련 의존성
+# pymongo==4.6.0
+# motor
+
+# # 인증 관련 의존성
+# python-jose[cryptography]==3.3.0
+# passlib[bcrypt]==1.7.4
+
+# # AI/ML 관련 의존성
+# openai-whisper==20231117
+# torch
+# numpy
+
+# # 유틸리티 의존성
+# python-dotenv==1.0.0
+# requests>=2.32.2
+# aiofiles
+
+
+# 버전 지정
 # FastAPI 관련 의존성
+# fastapi==0.104.1
+# uvicorn[standard]==0.24.0
+# pydantic==2.5.0
+# python-multipart==0.0.6
+
+# # MongoDB 관련 의존성
+# pymongo==4.6.0
+# motor==3.3.1  # 최신 안정 버전 기준
+
+# # 인증 관련 의존성
+# python-jose[cryptography]==3.3.0
+# passlib[bcrypt]==1.7.4
+
+# # AI/ML 관련 의존성
+# openai-whisper==20231117
+# torch==2.1.2  # GPU 없이 쓸 경우 안정적
+# numpy==1.26.4
+
+# # 유틸리티 의존성
+# python-dotenv==1.0.0
+# requests>=2.32.2
+# aiofiles
+
+# 디펜던시 관련 포함
+# FastAPI 관련
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
+uvicorn[standard]==0.24.0b
 pydantic==2.5.0
 python-multipart==0.0.6
 
-# MongoDB 관련 의존성
-pymongo==4.6.0
-motor
+# MongoDB 관련
+pymongo==4.13.2
+motor==3.3.1
 
-# 인증 관련 의존성
-python-jose[cryptography]==3.3.0
+# 인증 관련
+python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 
-# AI/ML 관련 의존성
-openai-whisper==20231117
-torch
-numpy
+# AI/ML 관련
+openai-whisper==20250625
+torch==2.7.1
+numpy==1.26.4
 
-# 유틸리티 의존성
+# 비동기 파일 입출력
+aiofiles==23.1.0
+
+# 기타 유틸리티
 python-dotenv==1.0.0
 requests>=2.32.2
-aiofiles
 
 httpx==0.25.2

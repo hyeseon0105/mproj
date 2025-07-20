@@ -949,3 +949,4 @@ class _DiaryEntryState extends State<DiaryEntry> with TickerProviderStateMixin {
     );
   }
 } 
+
