@@ -16,7 +16,7 @@ dependencies:
   path_provider: ^2.1.1
   permission_handler: ^11.0.1
   app_settings: ^5.1.1
-  # record: ^3.0.4  # 임시로 비활성화
+  # record: ^3.0.4  # 임시로 주석 처리
 
 dev_dependencies:
   flutter_test:

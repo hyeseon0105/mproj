@@ -43,10 +43,15 @@ class IndexPage extends StatelessWidget {
                     print('DiaryCalendar onDateSelect called: $dateKey'); // 디버깅용 로그
                     calendarAppState.handleDateSelect(dateKey);
                   },
+<<<<<<< HEAD
                   emotionData: calendarAppState.emotionData,
                   onSettingsClick: () => calendarAppState.handleSettingsClick(),
                   emoticonEnabled: calendarAppState.emoticonEnabled,
                   userSubscription: calendarAppState.userSubscription == UserSubscription.premium ? 'premium' : 'normal',
+=======
+                  onSettingsClick: () => calendarAppState.handleSettingsClick(),
+                  emoticonEnabled: calendarAppState.emoticonEnabled,
+>>>>>>> origin/main
                   userBirthday: calendarAppState.userBirthday,
                   onGoToMyPage: () => calendarAppState.setCurrentView(CurrentView.mypage),
                 );

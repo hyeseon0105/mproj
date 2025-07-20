@@ -18,6 +18,7 @@ class _MyPageState extends State<MyPage> {
   final GlobalKey _birthdayInputKey = GlobalKey(); // 생일 입력 박스의 위치를 찾기 위한 키
   bool _voiceEnabled = true;
   double _voiceVolume = 50;
+<<<<<<< HEAD
   bool _isProfileDialogOpen = false;
   bool _isEmojiDialogOpen = false;
   final bool _isPremiumModalOpen = false;
@@ -27,12 +28,24 @@ class _MyPageState extends State<MyPage> {
   DateTime _currentCalendarDate = DateTime.now(); // 현재 표시중인 달력의 년/월 상태 추가
   
   // Emoji categories state (이모지로 표시, Firebase URL은 별도 매핑)
+=======
+  String _userName = '사용자';
+  bool _isProfileDialogOpen = false;
+  bool _isEmojiDialogOpen = false;
+  bool _isCalendarVisible = false;
+  String _tempName = '사용자';
+  DateTime? _tempBirthday;
+  DateTime _currentCalendarDate = DateTime.now(); // 현재 표시중인 달력의 년/월 상태 추가
+  
+  // Emoji categories state
+>>>>>>> origin/main
   Map<Emotion, List<String>> _emojiCategories = {
     Emotion.shape: ['⭐', '🔶', '🔷', '⚫', '🔺'],
     Emotion.fruit: ['🍎', '🍊', '🍌', '🍇', '🍓'],
     Emotion.animal: ['🐶', '🐱', '🐰', '🐸', '🐼'],
     Emotion.weather: ['☀️', '🌧️', '⛈️', '🌈', '❄️']
   };
+<<<<<<< HEAD
 
   // Firebase 이미지 URL 매핑
   Map<Emotion, List<String>> _firebaseImageUrls = {
@@ -65,6 +78,8 @@ class _MyPageState extends State<MyPage> {
       'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fcalm_weather-removebg-preview.png?alt=media&token=7703fd25-fe2b-4750-a415-5f86c4e7b058'
     ]
   };
+=======
+>>>>>>> origin/main
   
   Emotion _selectedEmotion = Emotion.shape;
 
@@ -82,6 +97,7 @@ class _MyPageState extends State<MyPage> {
     Emotion.weather: 75
   };
 
+<<<<<<< HEAD
   // 카테고리별 사용 가능한 Firebase 이미지 URL 맵
   final Map<Emotion, List<String>> _availableEmoticonsByCategory = {
     Emotion.shape: [
@@ -140,11 +156,88 @@ class _MyPageState extends State<MyPage> {
       'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fanxious_weather-removebg-preview.png?alt=media&token=fc718a17-8d8e-4ed1-a78a-891fa9a149d0',
       'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fconfused_weather-removebg-preview.png?alt=media&token=afdfb6bf-2c69-4ef2-97a1-2e5aa67e6fdb'
     ],
+=======
+  final List<String> _availableEmojis = [
+    // 과일
+    '🍎', '🍊', '🍋', '🍌', '🍍', '🥭', '🍑', '🍒', '🍓', '🫐', '🥝', '🍅', '🫒', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍇', '🍈', '🍉',
+    // 동물
+    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐈', '🪶', '🐓', '🦃', '🦚', '🦜', '🦢', '🐇', '🦝', '🦨', '🦡', '🦫',
+    // 도형
+    '⭐', '🌟', '✨', '⚡', '💥', '🔥', '🌈', '☀️', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💠', '🔘', '🔳', '🔲',
+    // 날씨
+    '☀️', '🌤️', '⛅', '🌥️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '🌪️', '🌫️', '🌈', '☂️', '☔', '⚡', '🌊', '💧', '💦', '🧊'
+  ];
+
+  // 카테고리별 사용 가능한 이모티콘 맵 추가
+  final Map<Emotion, List<String>> _availableEmoticonsByCategory = {
+    Emotion.shape: ['⭐', '🌟', '✨', '⚡', '💥', '🔥', '🌈', '☀️', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '🟤', '⚫', '⚪', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '🟫', '⬛', '⬜', '◼️', '◻️', '◾', '◽', '▪️', '▫️', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💠', '🔘', '🔳', '🔲'],
+    Emotion.fruit: ['🍎', '🍊', '🍋', '🍌', '🍍', '🥭', '🍑', '🍒', '🍓', '🫐', '🥝', '🍅', '🫒', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍇', '🍈', '🍉'],
+    Emotion.animal: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐈', '🪶', '🐓', '🦃', '🦚', '🦜', '🦢', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦫'],
+    Emotion.weather: ['☀️', '🌤️', '⛅', '🌥️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '🌪️', '🌫️', '🌈', '☂️', '☔', '⚡', '🌊', '💧', '💦', '🧊'],
+>>>>>>> origin/main
   };
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
+=======
+    _tempName = _userName;
+    _loadUserProfile();
+    _loadUserSettings();
+  }
+  
+  // 사용자 프로필 로드
+  Future<void> _loadUserProfile() async {
+    try {
+      final userData = await UserService.getUserProfile();
+      setState(() {
+        _userName = userData['username'] ?? '사용자';
+        _tempName = _userName;
+        final birthdayStr = userData['birthday'];
+        if (birthdayStr != null && birthdayStr.isNotEmpty) {
+          final birthday = UserService.parseBirthday(birthdayStr);
+          if (birthday != null) {
+            // AppState에도 생일 정보 업데이트
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.read<AppState>().setUserBirthday(birthday);
+            });
+          }
+        }
+      });
+    } catch (e) {
+      print('프로필 로드 실패: $e');
+      // 토큰이 없거나 인증 실패 시 로그인 페이지로 이동
+      if (e.toString().contains('토큰이 없습니다') || e.toString().contains('401')) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<AppState>().handleLogout();
+        });
+      }
+    }
+  }
+
+  // 사용자 설정 로드
+  Future<void> _loadUserSettings() async {
+    try {
+      final appState = context.read<AppState>();
+      setState(() {
+        _voiceEnabled = appState.voiceEnabled;
+        _voiceVolume = appState.voiceVolume.toDouble();
+        _emojiCategories = Map<Emotion, List<String>>.from(
+          appState.emoticonCategories.map((key, value) => 
+            MapEntry(Emotion.values.firstWhere((e) => e.name == key), value)
+          )
+        );
+        // 마지막 선택된 카테고리 불러오기
+        _selectedEmotion = Emotion.values.firstWhere(
+          (e) => e.name == appState.lastSelectedEmotionCategory,
+          orElse: () => Emotion.shape
+        );
+      });
+    } catch (e) {
+      print('사용자 설정 로드 실패: $e');
+    }
+>>>>>>> origin/main
   }
 
   String _formatDate(DateTime? date) {
@@ -152,6 +245,7 @@ class _MyPageState extends State<MyPage> {
     return '${date.year}년 ${date.month.toString().padLeft(2, '0')}월 ${date.day.toString().padLeft(2, '0')}일';
   }
 
+<<<<<<< HEAD
   void _handleSaveProfile(AppState appState) async {
     if (_tempBirthday != null) {
       appState.setUserBirthday(_tempBirthday!);
@@ -171,10 +265,60 @@ class _MyPageState extends State<MyPage> {
     setState(() {
       _isProfileDialogOpen = false;
     });
+=======
+  Future<void> _handleSaveProfile(AppState appState) async {
+    try {
+      // 백엔드에 프로필 정보 업데이트
+      final birthdayStr = _tempBirthday != null 
+          ? UserService.formatBirthday(_tempBirthday)
+          : null;
+      
+      await UserService.updateUserProfile(
+        username: _tempName,
+        birthday: birthdayStr,
+      );
+      
+      setState(() {
+        _userName = _tempName;
+      });
+      
+      if (_tempBirthday != null) {
+        appState.setUserBirthday(_tempBirthday!);
+      }
+      
+      setState(() {
+        _isProfileDialogOpen = false;
+      });
+      
+      // 성공 메시지 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('프로필이 성공적으로 저장되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // 오류 메시지 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('프로필 저장 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+>>>>>>> origin/main
   }
 
   void _handleCancelProfile(AppState appState) {
     setState(() {
+<<<<<<< HEAD
+=======
+      _tempName = _userName;
+>>>>>>> origin/main
       _tempBirthday = appState.userBirthday;
       _isProfileDialogOpen = false;
     });
@@ -185,6 +329,7 @@ class _MyPageState extends State<MyPage> {
       var currentEmojis = _emojiCategories[_selectedEmotion]!;
       if (currentEmojis.contains(emoji)) {
         currentEmojis.remove(emoji);
+<<<<<<< HEAD
       } else {
         currentEmojis.add(emoji);
       }
@@ -216,6 +361,38 @@ class _MyPageState extends State<MyPage> {
       _isCalendarVisible = false;
       _currentCalendarDate = DateTime.now();
     });
+=======
+      } else if (currentEmojis.length < 5) {
+        currentEmojis.add(emoji);
+      }
+    });
+  }
+
+  void _handleCategorySelect(Emotion emotion) async {
+    setState(() {
+      _selectedEmotion = emotion;
+    });
+    // AppState에 마지막 선택된 카테고리 저장
+    await context.read<AppState>().setLastSelectedEmotionCategory(emotion.name);
+  }
+
+  Future<void> _resetToDefault() async {
+    try {
+      final appState = context.read<AppState>();
+      await appState.resetEmoticonCategories();
+      setState(() {
+        _emojiCategories = Map<Emotion, List<String>>.from(
+          appState.emoticonCategories.map((key, value) => 
+            MapEntry(Emotion.values.firstWhere((e) => e.name == key), value)
+          )
+        );
+        // 선택된 카테고리를 도형으로 변경
+        _selectedEmotion = Emotion.shape;
+      });
+    } catch (e) {
+      print('이모티콘 카테고리 초기화 실패: $e');
+    }
+>>>>>>> origin/main
   }
 
   // 행복 지수 계산
@@ -229,6 +406,7 @@ class _MyPageState extends State<MyPage> {
     
     final totalDays = currentMonthData.length;
     
+<<<<<<< HEAD
     // 사용자가 선택한 카테고리 가져오기
     final selectedCategory = appState.selectedEmoticonCategory;
     
@@ -254,6 +432,13 @@ class _MyPageState extends State<MyPage> {
         'totalDays': 0,
         'happinessIndex': 50,
         'happinessEmojiUrl': defaultEmojiUrl,
+=======
+    if (totalDays == 0) {
+      return {
+        'totalDays': 0,
+        'happinessIndex': 50,
+        'happinessEmoji': '🐸',
+>>>>>>> origin/main
         'happinessColor': const Color(0xFFEAB308),
         'gaugeAngle': 90.0
       };
@@ -264,6 +449,7 @@ class _MyPageState extends State<MyPage> {
     
     final happinessIndex = averageScore.round();
     final gaugeAngle = 180 - (happinessIndex / 100) * 180; // 180 to 0 degrees
+<<<<<<< HEAD
     
     // 사용자가 선택한 카테고리에 따른 Firebase 이미지 URL 결정
     String happinessEmojiUrl;
@@ -348,6 +534,9 @@ class _MyPageState extends State<MyPage> {
           break;
       }
     }
+=======
+    final happinessEmoji = happinessIndex >= 51 ? '🐶' : happinessIndex >= 21 ? '🐸' : '🐱';
+>>>>>>> origin/main
     
     // 행복 색상 계산 (빨강에서 초록으로)
     final red = max(0, 255 - (happinessIndex * 2.55));
@@ -357,12 +546,17 @@ class _MyPageState extends State<MyPage> {
     return {
       'totalDays': totalDays,
       'happinessIndex': happinessIndex,
+<<<<<<< HEAD
       'happinessEmojiUrl': happinessEmojiUrl,
+=======
+      'happinessEmoji': happinessEmoji,
+>>>>>>> origin/main
       'happinessColor': happinessColor,
       'gaugeAngle': gaugeAngle
     };
   }
 
+<<<<<<< HEAD
   // 프리미엄 결제 처리 (시뮬레이션)
   Future<void> _handlePremiumSubscription(AppState appState) async {
     try {
@@ -389,6 +583,9 @@ class _MyPageState extends State<MyPage> {
       );
     }
   }
+=======
+
+>>>>>>> origin/main
 
   // 달력 날짜 계산을 위한 헬퍼 함수들
   int _getDaysInMonth(int year, int month) {
@@ -460,9 +657,18 @@ class _MyPageState extends State<MyPage> {
     return 0;
   }
 
+<<<<<<< HEAD
 
 
   Widget _buildEmojiDialog(BuildContext context, AppState appState) {
+=======
+  // 프리미엄 카테고리 여부 확인 (모든 카테고리 사용 가능)
+  bool _isPremiumCategory(Emotion emotion) {
+    return false; // 모든 카테고리를 무료로 사용 가능
+  }
+
+  Widget _buildEmojiDialog(BuildContext context) {
+>>>>>>> origin/main
     return Dialog(
       backgroundColor: const Color(0xFFF5EFE6),
       shape: RoundedRectangleBorder(
@@ -498,6 +704,7 @@ class _MyPageState extends State<MyPage> {
             ),
             const SizedBox(height: 20),
             
+<<<<<<< HEAD
             // 카테고리 버튼들 - 가로 스크롤
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -514,6 +721,18 @@ class _MyPageState extends State<MyPage> {
                   const SizedBox(width: 8), // 오른쪽 여백
                 ],
               ),
+=======
+            // 카테고리 버튼들
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // 도형을 첫 번째로 이동
+                _buildCategoryButton(Emotion.shape),
+                _buildCategoryButton(Emotion.fruit),
+                _buildCategoryButton(Emotion.animal),
+                _buildCategoryButton(Emotion.weather),
+              ],
+>>>>>>> origin/main
             ),
             const SizedBox(height: 24),
 
@@ -527,17 +746,26 @@ class _MyPageState extends State<MyPage> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+<<<<<<< HEAD
+=======
+                
+>>>>>>> origin/main
               ],
             ),
             const SizedBox(height: 16),
 
+<<<<<<< HEAD
             // 선택된 Firebase 이미지들
+=======
+            // 선택된 이모지들
+>>>>>>> origin/main
             Container(
               padding: const EdgeInsets.all(12),
               child: Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: [
+<<<<<<< HEAD
                   for (var imageUrl in _firebaseImageUrls[_selectedEmotion]!)
                     Container(
                       width: 56,
@@ -560,6 +788,14 @@ class _MyPageState extends State<MyPage> {
                             ),
                           );
                         },
+=======
+                  for (var emoji in _emojiCategories[_selectedEmotion]!)
+                    Text(
+                      emoji,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        color: Colors.black,
+>>>>>>> origin/main
                       ),
                     ),
                 ],
@@ -578,12 +814,30 @@ class _MyPageState extends State<MyPage> {
                   ),
                   child: const Text('기본값으로 초기화'),
                 ),
+<<<<<<< HEAD
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
                       _isEmojiDialogOpen = false;
                     });
                   },
+=======
+                                  ElevatedButton(
+                    onPressed: () async {
+                      try {
+                        final appState = context.read<AppState>();
+                        final categories = _emojiCategories.map((key, value) => 
+                          MapEntry(key.name, value)
+                        );
+                        await appState.setEmoticonCategories(categories);
+                        setState(() {
+                          _isEmojiDialogOpen = false;
+                        });
+                      } catch (e) {
+                        print('이모티콘 카테고리 저장 실패: $e');
+                      }
+                    },
+>>>>>>> origin/main
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFB68D6B),
                     foregroundColor: Colors.white,
@@ -606,6 +860,7 @@ class _MyPageState extends State<MyPage> {
   }
 
   // 카테고리 버튼 위젯
+<<<<<<< HEAD
   Widget _buildCategoryButton(Emotion emotion, AppState appState) {
     return Container(
       constraints: const BoxConstraints(minWidth: 80), // 최소 너비 설정
@@ -639,17 +894,53 @@ class _MyPageState extends State<MyPage> {
             ),
           ],
         ),
+=======
+  Widget _buildCategoryButton(Emotion emotion) {
+    return TextButton(
+      onPressed: () => _handleCategorySelect(emotion),
+      style: ButtonStyle(
+        backgroundColor: MaterialStateProperty.all(
+          _selectedEmotion == emotion 
+            ? const Color(0xFFB68D6B)
+            : Colors.transparent,
+        ),
+        padding: MaterialStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+        shape: MaterialStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            _emotionLabels[emotion]!,
+            style: TextStyle(
+              color: _selectedEmotion == emotion ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+
+        ],
+>>>>>>> origin/main
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     print('MyPage build 호출됨'); // 디버깅용 로그
     return Consumer<AppState>(
       builder: (context, appState, child) {
         print('MyPage Consumer builder 호출됨'); // 디버깅용 로그
         print('현재 사용자명: ${appState.userName}'); // 디버깅용 로그
+=======
+    return Consumer<AppState>(
+      builder: (context, appState, child) {
+>>>>>>> origin/main
         final happinessData = _calculateHappinessData(appState);
         
         return Material(
@@ -714,12 +1005,17 @@ class _MyPageState extends State<MyPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
+<<<<<<< HEAD
                                         appState.userName,
+=======
+                                        _userName,
+>>>>>>> origin/main
                                         style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
+<<<<<<< HEAD
                                       // 디버깅용 로그
                                       Builder(
                                         builder: (context) {
@@ -729,6 +1025,8 @@ class _MyPageState extends State<MyPage> {
                                           return const SizedBox.shrink();
                                         },
                                       ),
+=======
+>>>>>>> origin/main
                                       const SizedBox(height: 4),
                                       Text(
                                         _formatDate(appState.userBirthday),
@@ -745,6 +1043,10 @@ class _MyPageState extends State<MyPage> {
                                     AppButton(
                                       onPressed: () {
                                         setState(() {
+<<<<<<< HEAD
+=======
+                                          _tempName = _userName;
+>>>>>>> origin/main
                                           _tempBirthday = appState.userBirthday;
                                           _isProfileDialogOpen = true;
                                         });
@@ -812,6 +1114,7 @@ class _MyPageState extends State<MyPage> {
                                 Center(
                                   child: Column(
                                     children: [
+<<<<<<< HEAD
                                       Stack(
                                         alignment: Alignment.center,
                                         children: [
@@ -856,6 +1159,19 @@ class _MyPageState extends State<MyPage> {
                                             ),
                                           ),
                                         ],
+=======
+                                      SizedBox(
+                                        width: 200,
+                                        height: 120,
+                                        child: CustomPaint(
+                                          painter: HappinessGaugePainter(
+                                            happinessIndex: happinessData['happinessIndex'],
+                                            gaugeAngle: happinessData['gaugeAngle'],
+                                            happinessColor: happinessData['happinessColor'],
+                                            happinessEmoji: happinessData['happinessEmoji'],
+                                          ),
+                                        ),
+>>>>>>> origin/main
                                       ),
                                       const SizedBox(height: 16),
                                       Column(
@@ -905,10 +1221,18 @@ class _MyPageState extends State<MyPage> {
                                     ),
                                     Switch(
                                       value: _voiceEnabled,
+<<<<<<< HEAD
                                       onChanged: (value) {
                                         setState(() {
                                           _voiceEnabled = value;
                                         });
+=======
+                                      onChanged: (value) async {
+                                        setState(() {
+                                          _voiceEnabled = value;
+                                        });
+                                        await appState.setVoiceEnabled(value);
+>>>>>>> origin/main
                                       },
                                       activeColor: AppColors.primary,
                                     ),
@@ -942,10 +1266,18 @@ class _MyPageState extends State<MyPage> {
                                     min: 0,
                                     max: 100,
                                     divisions: 100,
+<<<<<<< HEAD
                                     onChanged: (value) {
                                       setState(() {
                                         _voiceVolume = value;
                                       });
+=======
+                                    onChanged: (value) async {
+                                      setState(() {
+                                        _voiceVolume = value;
+                                      });
+                                      await appState.setVoiceVolume(value.round());
+>>>>>>> origin/main
                                     },
                                     activeColor: AppColors.primary,
                                   ),
@@ -989,7 +1321,13 @@ class _MyPageState extends State<MyPage> {
                                     ),
                                     Switch(
                                       value: appState.emoticonEnabled,
+<<<<<<< HEAD
                                       onChanged: appState.setEmoticonEnabled,
+=======
+                                      onChanged: (value) async {
+                                        await appState.setEmoticonEnabled(value);
+                                      },
+>>>>>>> origin/main
                                       activeColor: AppColors.primary,
                                     ),
                                   ],
@@ -1055,10 +1393,15 @@ class _MyPageState extends State<MyPage> {
                                                   _emotionLabels[_selectedEmotion]!,
                                                   style: const TextStyle(fontSize: 12),
                                                 ),
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main
                                               ],
                                             ),
                                             Row(
                                               children: [
+<<<<<<< HEAD
                                                 ...(_firebaseImageUrls[_selectedEmotion]!.take(3).map((imageUrl) => 
                                                   Container(
                                                     width: 24,
@@ -1087,6 +1430,13 @@ class _MyPageState extends State<MyPage> {
                                                 if (_firebaseImageUrls[_selectedEmotion]!.length > 3)
                                                   Text(
                                                     '+${_firebaseImageUrls[_selectedEmotion]!.length - 3}',
+=======
+                                                ...(_emojiCategories[_selectedEmotion]!.take(3).map((emoji) => 
+                                                  Text(emoji, style: const TextStyle(fontSize: 12)))),
+                                                if (_emojiCategories[_selectedEmotion]!.length > 3)
+                                                  Text(
+                                                    '+${_emojiCategories[_selectedEmotion]!.length - 3}',
+>>>>>>> origin/main
                                                     style: TextStyle(
                                                       fontSize: 12,
                                                       color: AppColors.mutedForeground,
@@ -1183,6 +1533,42 @@ class _MyPageState extends State<MyPage> {
                                 ],
                               ),
                               const SizedBox(height: 24),
+<<<<<<< HEAD
+=======
+                              // 이름 입력
+                              const Text(
+                                '이름',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: TextEditingController(),  // 초기값 제거
+                                onChanged: (value) => _tempName = value,
+                                decoration: InputDecoration(
+                                  hintText: '이름을 입력하세요.',
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 16,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(color: AppColors.border),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(color: AppColors.border),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(color: AppColors.border),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+>>>>>>> origin/main
                               // 생일 선택
                               const Text(
                                 '생일',
@@ -1350,7 +1736,10 @@ class _MyPageState extends State<MyPage> {
                                   if (day.isCurrentMonth) {
                                     setState(() {
                                       _tempBirthday = day.date;
+<<<<<<< HEAD
                                       _isCalendarVisible = false; // 날짜 선택 시 캘린더 닫기
+=======
+>>>>>>> origin/main
                                     });
                                   } else {
                                     setState(() {
@@ -1394,7 +1783,11 @@ class _MyPageState extends State<MyPage> {
                 ),
               // 이모티콘 설정 모달
               if (_isEmojiDialogOpen)
+<<<<<<< HEAD
                 _buildEmojiDialog(context, appState),
+=======
+                _buildEmojiDialog(context),
+>>>>>>> origin/main
             ],
           ),
         );
@@ -1404,11 +1797,16 @@ class _MyPageState extends State<MyPage> {
 
   // 카테고리 탭 위젯
   Widget _buildCategoryTab(Emotion emotion, String label, AppState appState) {
+<<<<<<< HEAD
     final bool isLocked = appState.userSubscription != UserSubscription.premium && 
                          emotion != Emotion.shape;
     
     return InkWell(
       onTap: isLocked ? null : () {
+=======
+    return InkWell(
+      onTap: () {
+>>>>>>> origin/main
         setState(() {
           _selectedEmotion = emotion;
         });
@@ -1434,10 +1832,14 @@ class _MyPageState extends State<MyPage> {
                   : FontWeight.normal,
               ),
             ),
+<<<<<<< HEAD
             if (isLocked) ...[
               const SizedBox(width: 4),
               const Text('🔒', style: TextStyle(fontSize: 12)),
             ],
+=======
+
+>>>>>>> origin/main
           ],
         ),
       ),
@@ -1490,13 +1892,21 @@ class HappinessGaugePainter extends CustomPainter {
   final int happinessIndex;
   final double gaugeAngle;
   final Color happinessColor;
+<<<<<<< HEAD
   final String happinessEmojiUrl;
+=======
+  final String happinessEmoji;
+>>>>>>> origin/main
 
   HappinessGaugePainter({
     required this.happinessIndex,
     required this.gaugeAngle,
     required this.happinessColor,
+<<<<<<< HEAD
     required this.happinessEmojiUrl,
+=======
+    required this.happinessEmoji,
+>>>>>>> origin/main
   });
 
   @override
@@ -1566,8 +1976,27 @@ class HappinessGaugePainter extends CustomPainter {
     happyPainter.layout();
     happyPainter.paint(canvas, Offset(size.width - 40, size.height - 10));
     
+<<<<<<< HEAD
     // Firebase 이미지는 CustomPaint에서 직접 그릴 수 없으므로 제거
     // 대신 위젯에서 별도로 표시
+=======
+    // Draw emoji on needle tip
+    final emojiPainter = TextPainter(
+      text: TextSpan(
+        text: happinessEmoji,
+        style: const TextStyle(fontSize: 20),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    emojiPainter.layout();
+    emojiPainter.paint(
+      canvas,
+      Offset(
+        center.dx + 70 * cos(needleAngle) - emojiPainter.width / 2,
+        center.dy - 70 * sin(needleAngle) - emojiPainter.height / 2,
+      ),
+    );
+>>>>>>> origin/main
   }
 
   @override

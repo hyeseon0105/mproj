@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 from fastapi import APIRouter, HTTPException, status, UploadFile, File
+=======
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+>>>>>>> origin/main
 from typing import List
 from datetime import datetime
 import uuid
@@ -9,6 +14,7 @@ from post.models.post import (
     PostCreateResponse, PostUpdateResponse, PostDeleteResponse, PostStatus,
     ImageUploadResponse, ImageDeleteResponse, ImageInfo
 )
+<<<<<<< HEAD
 from post.database.mongodb import get_mongodb
 from post.utils.image_utils import image_utils
 
@@ -35,6 +41,37 @@ async def create_post(post_data: PostCreate):
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="데이터베이스 컬렉션을 가져올 수 없습니다"
             )
+=======
+from post.utils.image_utils import image_utils
+from auth_utils import verify_token
+from database import posts as posts_collection
+
+router = APIRouter(tags=["posts"])
+security = HTTPBearer()
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """현재 인증된 사용자 정보를 가져옵니다"""
+    try:
+        payload = verify_token(credentials.credentials)
+        user_id = payload.get("user_id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="유효하지 않은 토큰입니다"
+            )
+        return user_id
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="인증에 실패했습니다"
+        )
+
+@router.post("/", response_model=PostCreateResponse, status_code=status.HTTP_201_CREATED)
+async def create_post(post_data: PostCreate, current_user_id: int = Depends(get_current_user)):
+    """일기 작성"""
+    try:
+        collection = posts_collection
+>>>>>>> origin/main
         
         # 새로운 일기 ID 생성
         post_id = str(uuid.uuid4())
@@ -65,9 +102,16 @@ async def create_post(post_data: PostCreate):
                         image_utils.delete_temp_file(temp_file)
                     raise
         
+<<<<<<< HEAD
         # 일기 데이터 저장
         new_post = {
             "post_id": post_id,
+=======
+        # 일기 데이터 저장 (사용자 ID 추가)
+        new_post = {
+            "post_id": post_id,
+            "user_id": current_user_id,  # 사용자 ID 추가
+>>>>>>> origin/main
             "content": post_data.content,
             "status": post_data.status,
             "images": images_info,
@@ -100,6 +144,7 @@ async def create_post(post_data: PostCreate):
         )
 
 @router.get("/", response_model=List[PostListResponse])
+<<<<<<< HEAD
 async def get_posts():
     """일기 목록 조회"""
     try:
@@ -120,6 +165,18 @@ async def get_posts():
         
         # 삭제되지 않은 일기만 조회
         query = {"status": {"$ne": PostStatus.DELETED}}
+=======
+async def get_posts(current_user_id: int = Depends(get_current_user)):
+    """사용자별 일기 목록 조회"""
+    try:
+        collection = posts_collection
+        
+        # 현재 사용자의 삭제되지 않은 일기만 조회
+        query = {
+            "user_id": current_user_id,
+            "status": {"$ne": PostStatus.DELETED}
+        }
+>>>>>>> origin/main
         cursor = collection.find(query).sort("created_at", -1)
         
         posts = []
@@ -154,6 +211,7 @@ async def get_posts():
         )
 
 @router.get("/{post_id}", response_model=PostDetailResponse)
+<<<<<<< HEAD
 async def get_post_detail(post_id: str):
     """일기 상세 조회"""
     try:
@@ -174,6 +232,18 @@ async def get_post_detail(post_id: str):
         
         # 일기 조회
         post_doc = collection.find_one({"post_id": post_id})
+=======
+async def get_post_detail(post_id: str, current_user_id: int = Depends(get_current_user)):
+    """일기 상세 조회 (본인의 일기만 조회 가능)"""
+    try:
+        collection = posts_collection
+        
+        # 본인의 일기만 조회
+        post_doc = collection.find_one({
+            "post_id": post_id,
+            "user_id": current_user_id
+        })
+>>>>>>> origin/main
         if not post_doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -215,6 +285,7 @@ async def get_post_detail(post_id: str):
         )
 
 @router.put("/{post_id}", response_model=PostUpdateResponse)
+<<<<<<< HEAD
 async def update_post(post_id: str, post_data: PostUpdate):
     """일기 수정"""
     try:
@@ -230,6 +301,18 @@ async def update_post(post_id: str, post_data: PostUpdate):
         
         # 일기 존재 여부 확인
         existing_post = collection.find_one({"post_id": post_id})
+=======
+async def update_post(post_id: str, post_data: PostUpdate, current_user_id: int = Depends(get_current_user)):
+    """일기 수정 (본인의 일기만 수정 가능)"""
+    try:
+        collection = posts_collection
+        
+        # 본인의 일기 존재 여부 확인
+        existing_post = collection.find_one({
+            "post_id": post_id,
+            "user_id": current_user_id
+        })
+>>>>>>> origin/main
         if not existing_post:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -247,7 +330,11 @@ async def update_post(post_id: str, post_data: PostUpdate):
         update_data = post_data.dict(exclude_unset=True)
         
         result = collection.update_one(
+<<<<<<< HEAD
             {"post_id": post_id},
+=======
+            {"post_id": post_id, "user_id": current_user_id},
+>>>>>>> origin/main
             {"$set": update_data}
         )
         
@@ -271,6 +358,7 @@ async def update_post(post_id: str, post_data: PostUpdate):
         )
 
 @router.delete("/{post_id}", response_model=PostDeleteResponse)
+<<<<<<< HEAD
 async def delete_post(post_id: str):
     """일기 삭제"""
     try:
@@ -286,6 +374,18 @@ async def delete_post(post_id: str):
         
         # 일기 존재 여부 확인
         existing_post = collection.find_one({"post_id": post_id})
+=======
+async def delete_post(post_id: str, current_user_id: int = Depends(get_current_user)):
+    """일기 삭제 (본인의 일기만 삭제 가능)"""
+    try:
+        collection = posts_collection
+        
+        # 본인의 일기 존재 여부 확인
+        existing_post = collection.find_one({
+            "post_id": post_id,
+            "user_id": current_user_id
+        })
+>>>>>>> origin/main
         if not existing_post:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -301,7 +401,11 @@ async def delete_post(post_id: str):
         
         # 소프트 삭제 (상태만 변경)
         result = collection.update_one(
+<<<<<<< HEAD
             {"post_id": post_id},
+=======
+            {"post_id": post_id, "user_id": current_user_id},
+>>>>>>> origin/main
             {"$set": {
                 "status": PostStatus.DELETED
             }}
@@ -327,6 +431,7 @@ async def delete_post(post_id: str):
         )
 
 @router.get("/date/{date}", response_model=List[PostListResponse])
+<<<<<<< HEAD
 async def get_posts_by_date(date: str):
     """특정 날짜의 일기 목록 조회"""
     try:
@@ -344,6 +449,12 @@ async def get_posts_by_date(date: str):
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="데이터베이스 컬렉션을 가져올 수 없습니다"
             )
+=======
+async def get_posts_by_date(date: str, current_user_id: int = Depends(get_current_user)):
+    """특정 날짜의 사용자별 일기 목록 조회"""
+    try:
+        collection = posts_collection
+>>>>>>> origin/main
         
         # 날짜 형식 검증 (YYYY-MM-DD)
         try:
@@ -354,8 +465,14 @@ async def get_posts_by_date(date: str):
                 detail="잘못된 날짜 형식입니다. YYYY-MM-DD 형식이어야 합니다."
             )
         
+<<<<<<< HEAD
         # 해당 날짜의 게시된 일기만 조회
         query = {
+=======
+        # 해당 날짜의 현재 사용자의 게시된 일기만 조회
+        query = {
+            "user_id": current_user_id,
+>>>>>>> origin/main
             "created_at": {
                 "$gte": datetime.strptime(f"{date} 00:00:00", "%Y-%m-%d %H:%M:%S"),
                 "$lt": datetime.strptime(f"{date} 23:59:59", "%Y-%m-%d %H:%M:%S")
@@ -400,6 +517,7 @@ async def get_posts_by_date(date: str):
 async def health_check():
     """헬스 체크"""
     try:
+<<<<<<< HEAD
         if not mongodb.check_connection():
             mongodb.connect()
         
@@ -410,6 +528,9 @@ async def health_check():
                 "database": "collection_error",
                 "error": "컬렉션을 가져올 수 없습니다"
             }
+=======
+        collection = posts_collection
+>>>>>>> origin/main
         
         total_posts = collection.count_documents({})
         published_posts = collection.count_documents({"status": PostStatus.PUBLISHED})

@@ -14,6 +14,10 @@ class UserCreate(BaseModel):
     username: str
     password: str
     email: str
+<<<<<<< HEAD
+=======
+    birthday: str  # 생일 추가 (YYYY-MM-DD 형식)
+>>>>>>> origin/main
 
 class UserLogin(BaseModel):
     email: str
@@ -28,12 +32,20 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     email: Optional[str] = None
+<<<<<<< HEAD
     birthday: Optional[str] = None
+=======
+    birthday: Optional[str] = None  # 생일 추가
+>>>>>>> origin/main
 
 class UserResponse(BaseModel):
     id: str
     username: str
     email: str
+<<<<<<< HEAD
+=======
+    birthday: str
+>>>>>>> origin/main
     created_at: datetime
 
 @router.post("/register")
@@ -56,6 +68,10 @@ async def register(user: UserCreate):
         "username": user.username,
         "password": hashed_password,  # 해싱된 패스워드 저장
         "email": user.email,
+<<<<<<< HEAD
+=======
+        "birthday": user.birthday,  # 생일 추가
+>>>>>>> origin/main
         "created_at": datetime.utcnow()
     }
     
@@ -81,16 +97,29 @@ async def login(user_credentials: UserLogin):
             detail="이메일 또는 패스워드가 잘못되었습니다"
         )
     
+<<<<<<< HEAD
     # JWT 토큰 생성 (email 기반)
     access_token = create_access_token(data={"sub": user["email"]})
+=======
+    # JWT 토큰 생성 (user_id와 email 포함)
+    access_token = create_access_token(data={
+        "sub": user["email"],
+        "user_id": user["id"]
+    })
+>>>>>>> origin/main
     
     # 사용자 정보 (패스워드 제외)
     user_info = {
         "id": user.get("id", str(user["_id"])),  # 단순 ID 또는 기존 ObjectId
         "username": user["username"],
         "email": user["email"],
+<<<<<<< HEAD
         "created_at": user["created_at"],
         "birthday": user.get("birthday")  # 생일 정보 추가
+=======
+        "birthday": user.get("birthday", ""),  # 생일 추가
+        "created_at": user["created_at"]
+>>>>>>> origin/main
     }
     
     return {
@@ -110,6 +139,10 @@ async def get_all_users():
             "id": user.get("id", str(user["_id"])),  # 단순 ID 우선, 없으면 ObjectId
             "username": user["username"],
             "email": user["email"],
+<<<<<<< HEAD
+=======
+            "birthday": user.get("birthday", ""),  # 생일 추가
+>>>>>>> origin/main
             "created_at": user["created_at"]
         }
         user_list.append(user_data)
@@ -138,6 +171,10 @@ async def get_user_by_id(user_id: str):
             "id": user.get("id", str(user["_id"])),
             "username": user["username"],
             "email": user["email"],
+<<<<<<< HEAD
+=======
+            "birthday": user.get("birthday", ""),  # 생일 추가
+>>>>>>> origin/main
             "created_at": user["created_at"]
         }
     except HTTPException:
@@ -157,6 +194,10 @@ async def get_user_by_username(username: str):
         "id": str(user["_id"]),
         "username": user["username"],
         "email": user["email"],
+<<<<<<< HEAD
+=======
+        "birthday": user.get("birthday", ""),  # 생일 추가
+>>>>>>> origin/main
         "created_at": user["created_at"]
     }
 
@@ -217,6 +258,10 @@ async def update_user(user_id: str, user_update: UserUpdate):
                 "id": str(updated_user["_id"]) if updated_user and "_id" in updated_user else None,
                 "username": updated_user["username"] if updated_user and "username" in updated_user else None,
                 "email": updated_user["email"] if updated_user and "email" in updated_user else None,
+<<<<<<< HEAD
+=======
+                "birthday": updated_user.get("birthday", "") if updated_user else None,
+>>>>>>> origin/main
                 "created_at": updated_user["created_at"] if updated_user and "created_at" in updated_user else None,
                 "updated_at": updated_user.get("updated_at") if updated_user else None
             }
@@ -283,3 +328,117 @@ async def delete_user_by_username(username: str):
         }
     }
 
+<<<<<<< HEAD
+=======
+@router.get("/user/profile")
+async def get_user_profile(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """현재 로그인한 사용자의 프로필 정보 조회"""
+    try:
+        # JWT 토큰 검증
+        payload = verify_token(credentials.credentials)
+        user_email = payload.get("sub")
+        
+        if not user_email:
+            raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다")
+        
+        # 사용자 정보 조회
+        user = users.find_one({"email": user_email})
+        if not user:
+            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+        
+        return {
+            "id": user.get("id", str(user["_id"])),
+            "username": user["username"],
+            "email": user["email"],
+            "birthday": user.get("birthday", ""),
+            "created_at": user["created_at"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
+
+@router.put("/user/profile")
+async def update_user_profile(
+    user_update: UserUpdate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """현재 로그인한 사용자의 프로필 정보 수정"""
+    try:
+        # JWT 토큰 검증
+        payload = verify_token(credentials.credentials)
+        user_email = payload.get("sub")
+        
+        if not user_email:
+            raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다")
+        
+        # 사용자 정보 조회
+        user = users.find_one({"email": user_email})
+        if not user:
+            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+        
+        # 업데이트할 데이터 준비 (None이 아닌 값만)
+        update_data = {}
+        if user_update.username is not None:
+            # username 중복 체크 (다른 사용자와)
+            duplicate_user = users.find_one({
+                "username": user_update.username,
+                "email": {"$ne": user_email}
+            })
+            if duplicate_user:
+                raise HTTPException(status_code=400, detail="이미 존재하는 사용자명입니다")
+            update_data["username"] = user_update.username
+            
+        if user_update.password is not None:
+            # 패스워드 해싱
+            update_data["password"] = get_password_hash(user_update.password)
+            
+        if user_update.email is not None:
+            # email 중복 체크 (다른 사용자와)
+            duplicate_user = users.find_one({
+                "email": user_update.email,
+                "email": {"$ne": user_email}
+            })
+            if duplicate_user:
+                raise HTTPException(status_code=400, detail="이미 존재하는 이메일입니다")
+            update_data["email"] = user_update.email
+            
+        if user_update.birthday is not None:
+            update_data["birthday"] = user_update.birthday
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="수정할 데이터가 없습니다")
+        
+        # 수정일시 추가
+        update_data["updated_at"] = datetime.utcnow()
+        
+        # 사용자 정보 업데이트
+        result = users.update_one(
+            {"email": user_email},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="사용자 정보 수정에 실패했습니다")
+        
+        # 업데이트된 사용자 정보 반환
+        updated_user = users.find_one({"email": user_email})
+        return {
+            "message": "프로필 정보가 수정되었습니다",
+            "user": {
+                "id": updated_user.get("id", str(updated_user["_id"])),
+                "username": updated_user["username"],
+                "email": updated_user["email"],
+                "birthday": updated_user.get("birthday", ""),
+                "created_at": updated_user["created_at"],
+                "updated_at": updated_user.get("updated_at")
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
+
+>>>>>>> origin/main

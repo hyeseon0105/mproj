@@ -13,7 +13,11 @@ load_dotenv()
 
 # MongoDB 설정
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+<<<<<<< HEAD
 DATABASE_NAME = os.getenv("DATABASE_NAME", "diary_calendar")
+=======
+DATABASE_NAME = os.getenv("DATABASE_NAME", "mini_project")
+>>>>>>> origin/main
 
 # 전역 변수
 client: Optional[MongoClient] = None

@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../ui/card.dart';
 import '../ui/button.dart';
 import 'dart:math';
+<<<<<<< HEAD
 import '../services/diary_service.dart'; // Added import for DiaryService
 
 class DiaryCalendar extends StatefulWidget {
@@ -13,16 +14,29 @@ class DiaryCalendar extends StatefulWidget {
   final VoidCallback? onSettingsClick;
   final bool emoticonEnabled;
   final String userSubscription;
+=======
+import '../services/fortune_service.dart'; // Added import for FortuneService
+
+class DiaryCalendar extends StatefulWidget {
+  final Function(String)? onDateSelect;
+  final VoidCallback? onSettingsClick;
+  final bool emoticonEnabled;
+>>>>>>> origin/main
   final DateTime? userBirthday;
   final VoidCallback? onGoToMyPage;
 
   const DiaryCalendar({
     super.key,
     this.onDateSelect,
+<<<<<<< HEAD
     this.emotionData,
     this.onSettingsClick,
     this.emoticonEnabled = true,
     this.userSubscription = 'normal',
+=======
+    this.onSettingsClick,
+    this.emoticonEnabled = true,
+>>>>>>> origin/main
     this.userBirthday,
     this.onGoToMyPage,
   });
@@ -35,6 +49,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   late DateTime currentDate;
   late Map<String, EmotionData> emotionData;
 
+<<<<<<< HEAD
   // 사용자가 선택한 카테고리의 이모지만 사용
   String _getEmotionEmoji(Emotion emotion, AppState appState) {
     final selectedCategory = appState.selectedEmoticonCategory;
@@ -63,6 +78,14 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     
     return emotionEmojis[emotion] ?? emotionEmojis[Emotion.shape]!;
   }
+=======
+  final Map<Emotion, String> emotionEmojis = {
+    Emotion.fruit: '🍎',
+    Emotion.animal: '🐶',
+    Emotion.shape: '⭐',
+    Emotion.weather: '☀️',
+  };
+>>>>>>> origin/main
 
   final Map<Emotion, Color> emotionColors = {
     Emotion.fruit: const Color(0xFFEA580C), // orange-500
@@ -82,7 +105,19 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   void initState() {
     super.initState();
     currentDate = DateTime.now();
+<<<<<<< HEAD
     emotionData = widget.emotionData ?? _generateCurrentMonthSampleData();
+=======
+    
+    // AppState에서 emotionData 가져오기
+    final appState = Provider.of<AppState>(context, listen: false);
+    emotionData = appState.emotionData;
+    
+    // 생년월일이 설정되어 있으면 운세 로드
+    if (widget.userBirthday != null) {
+      _loadTodaysFortune(widget.userBirthday!);
+    }
+>>>>>>> origin/main
   }
 
   Map<String, EmotionData> _generateCurrentMonthSampleData() {
@@ -93,12 +128,16 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     
     final Map<String, EmotionData> sampleData = {};
     final emotions = Emotion.values;
+<<<<<<< HEAD
     final emojis = [
       'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/fruit%2Fneutral_fruit-removebg-preview.png?alt=media&token=9bdea06c-13e6-4c59-b961-1424422a3c39',
       'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/animal%2Fneutral_animal-removebg-preview.png?alt=media&token=f884e38d-5d8c-4d4a-bb62-a47a198d384f',
       'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/shape%2Fneutral_shape-removebg-preview.png?alt=media&token=02e85132-3a83-4257-8c1e-d2e478c7fcf5',
       'https://firebasestorage.googleapis.com/v0/b/diary-3bbf7.firebasestorage.app/o/wheather%2Fneutral_weather-removebg-preview.png?alt=media&token=57ad1adf-baa6-4b79-96f5-066a4ec3358f',
     ];
+=======
+    final emojis = ['🍎', '🐶', '⭐', '☀️'];
+>>>>>>> origin/main
     final random = Random();
     
     // Add some sample entries for the current month
@@ -127,6 +166,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
     return '${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
   }
 
+<<<<<<< HEAD
   void _handleDateClick(int day) async {
     final dateKey = _getDateKey(day);
     print('Calendar date clicked: $dateKey');
@@ -204,6 +244,65 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
       );
     }
   }
+=======
+  void _handleDateClick(int day) {
+    final dateKey = _getDateKey(day);
+    print('Calendar date clicked: $dateKey');
+    
+    // AppState의 데이터를 사용하여 일기 존재 여부 확인
+    final appState = Provider.of<AppState>(context, listen: false);
+    final hasDiary = appState.emotionData.containsKey(dateKey) && 
+                     appState.emotionData[dateKey]?.entry != null;
+    
+    if (widget.onDateSelect != null) {
+      widget.onDateSelect!(dateKey);
+    } else {
+      appState.handleDateSelect(dateKey);
+    }
+  }
+
+  String _currentFortune = '';
+  bool _isLoadingFortune = false;
+
+  Future<void> _loadTodaysFortune(DateTime birthday) async {
+    if (_isLoadingFortune) return;
+    
+    setState(() {
+      _isLoadingFortune = true;
+    });
+
+    try {
+      // 생년월일을 YYYYMMDD 형식으로 변환
+      final birthdayString = '${birthday.year}${birthday.month.toString().padLeft(2, '0')}${birthday.day.toString().padLeft(2, '0')}';
+      
+      // OpenAI API를 통해 운세 생성 시도
+      final fortune = await FortuneService.generateFortune(birthdayString);
+      
+      if (fortune != null) {
+        setState(() {
+          _currentFortune = fortune;
+        });
+      } else {
+        // API 실패 시 기본 운세 사용
+        setState(() {
+          _currentFortune = FortuneService.getDefaultFortune(birthday);
+        });
+      }
+    } catch (e) {
+      print('운세 로딩 중 오류: $e');
+      // 오류 발생 시 기본 운세 사용
+      setState(() {
+        _currentFortune = FortuneService.getDefaultFortune(birthday);
+      });
+    } finally {
+      setState(() {
+        _isLoadingFortune = false;
+      });
+    }
+  }
+
+
+>>>>>>> origin/main
 
   List<Widget> _renderCalendarDays() {
     final year = currentDate.year;
@@ -291,6 +390,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                               child: Center(
                                 child: Transform.translate(
                                   offset: const Offset(0, -20),
+<<<<<<< HEAD
                                   child: Consumer<AppState>(
                                     builder: (context, appState, child) {
                                       return Image.network(
@@ -306,6 +406,11 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                                         },
                                       );
                                     },
+=======
+                                  child: Text(
+                                    dayData.emoji,
+                                    style: const TextStyle(fontSize: 14),
+>>>>>>> origin/main
                                   ),
                                 ),
                               ),
@@ -326,6 +431,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
   }
 
   Widget _renderFortuneSection() {
+<<<<<<< HEAD
     if (widget.userSubscription == 'normal') {
       return AppCard(
         backgroundColor: AppColors.calendarBg,
@@ -388,6 +494,9 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
       );
     }
 
+=======
+    // 생년월일이 설정되지 않은 경우 마이페이지로 이동하는 카드 표시
+>>>>>>> origin/main
     if (widget.userBirthday == null) {
       return AppCard(
         backgroundColor: AppColors.calendarBg,
@@ -453,7 +562,10 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
       );
     }
 
+<<<<<<< HEAD
     final todaysFortune = _generateTodaysFortune(widget.userBirthday!);
+=======
+>>>>>>> origin/main
     final today = DateTime.now();
     final formatToday = '${today.month}월 ${today.day}일';
 
@@ -529,6 +641,7 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
                 ),
               ],
             ),
+<<<<<<< HEAD
             child: Text(
               todaysFortune,
               style: TextStyle(
@@ -538,6 +651,39 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
               ),
               textAlign: TextAlign.center,
             ),
+=======
+            child: _isLoadingFortune
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '운세를 생성하고 있어요...',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                )
+              : Text(
+                  _currentFortune.isNotEmpty ? _currentFortune : FortuneService.getDefaultFortune(widget.userBirthday!),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.foreground,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+>>>>>>> origin/main
           ),
         ],
       ),
@@ -546,10 +692,22 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final year = currentDate.year;
     final month = currentDate.month;
 
     return Container(
+=======
+    return Consumer<AppState>(
+      builder: (context, appState, child) {
+        // AppState에서 최신 emotionData 가져오기
+        emotionData = appState.emotionData;
+        
+        final year = currentDate.year;
+        final month = currentDate.month;
+
+        return Container(
+>>>>>>> origin/main
       constraints: const BoxConstraints(minHeight: double.infinity),
       color: AppColors.background,
       padding: const EdgeInsets.all(16),
@@ -690,5 +848,10 @@ class _DiaryCalendarState extends State<DiaryCalendar> {
         ),
       ),
     );
+<<<<<<< HEAD
+=======
+      },
+    );
+>>>>>>> origin/main
   }
 } 

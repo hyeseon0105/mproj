@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 일기 앱 (Diary App)
 
 Flutter로 개발된 일기 작성 앱입니다. 음성 인식(STT) 기능을 통해 음성으로 일기를 작성할 수 있습니다.
@@ -73,3 +74,21 @@ mproj-1/
 - `.env` 파일은 절대 Git에 커밋하지 마세요
 - OpenAI API 키는 안전하게 보관하세요
 - API 사용량에 따른 비용이 발생할 수 있습니다
+=======
+# my_flutter_app
+
+A new Flutter project.
+
+## Getting Started
+
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
+>>>>>>> origin/main
