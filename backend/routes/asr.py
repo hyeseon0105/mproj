@@ -19,4 +19,22 @@ async def asr_recognize(file: UploadFile = File(...)):
         text = result["text"] if isinstance(result, dict) else result
         return {"text": text}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"ASR 처리 오류: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"ASR 처리 오류: {str(e)}")
+
+@router.get("/asr/supported-languages")
+async def get_supported_languages():
+    """지원하는 언어 목록 반환"""
+    return {
+        "languages": {
+            "ko": "한국어",
+            "en": "English",
+            "ja": "日本語",
+            "zh": "中文",
+            "es": "Español",
+            "fr": "Français",
+            "de": "Deutsch",
+            "it": "Italiano",
+            "pt": "Português",
+            "ru": "Русский"
+        }
+    } 

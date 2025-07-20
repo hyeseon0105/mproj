@@ -4,22 +4,26 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 
 class STTService {
-  static const String _baseUrl = 'http://192.168.0.12:5001';
+  static const String _baseUrl = 'http://192.168.43.129:8000/api';
   
   /// 오디오 파일을 텍스트로 변환
   static Future<STTResult> transcribeAudio(File audioFile, {String language = 'ko'}) async {
     try {
+      // 파일을 바이트로 읽기
+      final bytes = await audioFile.readAsBytes();
+      
       // multipart request 생성
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$_baseUrl/stt/transcribe'),
+        Uri.parse('$_baseUrl/asr/'),
       );
 
-      // 오디오 파일 추가
+      // 오디오 파일을 바이트로 추가 (Content-Length 문제 해결)
       request.files.add(
-        await http.MultipartFile.fromPath(
+        http.MultipartFile.fromBytes(
           'audio',
-          audioFile.path,
+          bytes,
+          filename: 'audio.m4a',
         ),
       );
 
@@ -47,27 +51,45 @@ class STTService {
   /// 오디오 청크를 텍스트로 변환 (실시간용)
   static Future<STTResult> transcribeAudioChunk(File audioFile, {String language = 'ko'}) async {
     try {
+      // 파일 크기 확인
+      final fileSize = await audioFile.length();
+      print('STT 청크 파일 크기: ${fileSize} bytes');
+      
+      // 파일을 바이트로 읽기
+      final bytes = await audioFile.readAsBytes();
+      
       // multipart request 생성
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$_baseUrl/stt/transcribe-chunk'),
+        Uri.parse('$_baseUrl/asr/'),
       );
 
-      // 오디오 파일 추가
+      // 오디오 파일을 바이트로 추가 (Content-Length 문제 해결)
       request.files.add(
-        await http.MultipartFile.fromPath(
+        http.MultipartFile.fromBytes(
           'audio',
-          audioFile.path,
+          bytes,
+          filename: 'audio.wav',
         ),
       );
 
       // 언어 설정 추가
       request.fields['language'] = language;
 
-      // 요청 전송
-      var response = await request.send();
+      print('STT 청크 요청 전송 중...');
+      // 요청 전송 (타임아웃 30초)
+      var response = await request.send().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw STTException('요청 타임아웃');
+        },
+      );
+      
       var responseData = await response.stream.bytesToString();
       var jsonData = json.decode(responseData);
+
+      print('STT 청크 응답 상태: ${response.statusCode}');
+      print('STT 청크 응답 내용: $responseData');
 
       if (response.statusCode == 200) {
         return STTResult.fromJson(jsonData);
@@ -85,7 +107,11 @@ class STTService {
   /// 서비스 상태 확인
   static Future<Map<String, dynamic>> healthCheck() async {
     try {
-      final response = await http.get(Uri.parse('$_baseUrl/stt/health'));
+      print('STT 서비스 연결 테스트: $_baseUrl/../health');
+      final response = await http.get(Uri.parse('$_baseUrl/../health'));
+      
+      print('STT 서비스 응답 상태: ${response.statusCode}');
+      print('STT 서비스 응답 내용: ${response.body}');
       
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -93,6 +119,7 @@ class STTService {
         throw STTException('서비스 상태 확인에 실패했습니다.');
       }
     } catch (e) {
+      print('STT 서비스 연결 오류: $e');
       throw STTException('서비스 연결 오류: ${e.toString()}');
     }
   }
@@ -100,7 +127,7 @@ class STTService {
   /// 지원하는 언어 목록 가져오기
   static Future<Map<String, String>> getSupportedLanguages() async {
     try {
-      final response = await http.get(Uri.parse('$_baseUrl/stt/supported-languages'));
+      final response = await http.get(Uri.parse('$_baseUrl/asr/supported-languages'));
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

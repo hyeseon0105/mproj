@@ -146,6 +146,7 @@ async def get_fortune(birthday: str = Query(..., description="생년월일 (YYYY
         return jsonify({'error': '올바른 생년월일을 입력해주세요.'}), 400
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     app.run(debug=True)
 =======
             raise HTTPException(status_code=400, detail="올바른 생년월일을 입력해주세요.")
@@ -182,3 +183,6 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
 >>>>>>> origin/main
+=======
+    app.run(debug=True, host='0.0.0.0', port=5002)
+>>>>>>> ec3101fac74b54c58bff6fbb00dcf6d5e01fc55e

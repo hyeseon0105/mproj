@@ -1288,6 +1288,37 @@ class _MyPageState extends State<MyPage> {
                           
                           const SizedBox(height: 24),
                           
+                          // STT Test Button
+                          AppCard(
+                            backgroundColor: AppColors.calendarBg,
+                            borderRadius: BorderRadius.circular(24),
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'STT 기능 테스트',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '음성 인식 기능을 테스트해보세요',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.mutedForeground,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                              ],
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 24),
+                          
                           // Emoticon Setting
                           AppCard(
                             backgroundColor: AppColors.calendarBg,

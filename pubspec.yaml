@@ -16,7 +16,17 @@ dependencies:
   path_provider: ^2.1.1
   permission_handler: ^11.0.1
   app_settings: ^5.1.1
+<<<<<<< HEAD
   # record: ^3.0.4  # 임시로 주석 처리
+=======
+  just_audio: ^0.9.36
+  audio_session: ^0.1.18
+  flutter_audio_capture: ^1.1.8
+  flutter_sound: ^9.2.13
+  flutter_sound_platform_interface: ^9.2.13
+  record: ^6.0.0
+  image_picker: ^1.0.4
+>>>>>>> ec3101fac74b54c58bff6fbb00dcf6d5e01fc55e
 
 dev_dependencies:
   flutter_test:

@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 <<<<<<< HEAD
 import '../models/app_state.dart';
 
 class DiaryService {
+<<<<<<< HEAD
   static const String baseUrl = 'http://10.0.2.2:8000'; // FastAPI 서버 주소 (Android 에뮬레이터용)
 =======
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +20,9 @@ class DiaryService {
     return prefs.getString('access_token');
   }
 >>>>>>> origin/main
+=======
+  static const String baseUrl = 'http://192.168.43.129:8000'; // FastAPI 서버 주소 (실제 안드로이드 폰용)
+>>>>>>> ec3101fac74b54c58bff6fbb00dcf6d5e01fc55e
 
   Future<String> createDiary({
     required String content,
@@ -124,6 +129,7 @@ class DiaryService {
     }
   }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
   Future<List<Map<String, dynamic>>> getAllDiaries() async {
@@ -161,4 +167,65 @@ class DiaryService {
     }
   }
 >>>>>>> origin/main
+=======
+
+  /// 이미지 업로드
+  Future<String> uploadImage(File imageFile) async {
+    try {
+      print('이미지 업로드 API 호출 시작');
+      
+      // multipart 요청 생성
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/api/posts/upload-image'),
+      );
+
+      // 파일 추가
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          imageFile.path,
+        ),
+      );
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      print('이미지 업로드 API 응답 상태 코드: ${response.statusCode}');
+      print('이미지 업로드 API 응답 내용: $responseBody');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(responseBody);
+        return data['filename'];
+      } else {
+        throw Exception('이미지 업로드에 실패했습니다: $responseBody');
+      }
+    } catch (e) {
+      print('이미지 업로드 API 호출 중 에러 발생: $e');
+      throw Exception('이미지 업로드 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  /// 이미지 삭제
+  Future<bool> deleteImage(String filename) async {
+    try {
+      print('이미지 삭제 API 호출 시작: $filename');
+      
+      final response = await http.delete(
+        Uri.parse('$baseUrl/api/posts/delete-image/$filename'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      print('이미지 삭제 API 응답 상태 코드: ${response.statusCode}');
+      print('이미지 삭제 API 응답 내용: ${response.body}');
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('이미지 삭제 API 호출 중 에러 발생: $e');
+      return false;
+    }
+  }
+>>>>>>> ec3101fac74b54c58bff6fbb00dcf6d5e01fc55e
 } 

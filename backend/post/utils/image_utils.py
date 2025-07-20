@@ -200,6 +200,51 @@ class ImageUtils:
     def __init__(self):
         pass
     
+    async def save_temp_image(self, file: UploadFile) -> str:
+        """임시 이미지 파일 저장"""
+        # 디렉토리 확인
+        ensure_directories()
+        
+        # 파일 유효성 검사
+        validate_image_file(file)
+        
+        # 고유한 파일명 생성
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="파일명이 없습니다")
+        unique_filename = generate_unique_filename(file.filename)
+        temp_path = os.path.join(TEMP_DIR, unique_filename)
+        
+        # 파일 크기 체크 및 저장
+        file_size = 0
+        try:
+            async with aiofiles.open(temp_path, 'wb') as f:
+                while chunk := await file.read(8192):  # 8KB씩 읽기
+                    file_size += len(chunk)
+                    
+                    # 파일 크기 제한 확인
+                    if file_size > MAX_FILE_SIZE:
+                        # 임시 파일 삭제
+                        if os.path.exists(temp_path):
+                            os.remove(temp_path)
+                        raise HTTPException(
+                            status_code=413, 
+                            detail=f"파일 크기가 너무 큽니다. 최대 {MAX_FILE_SIZE // (1024*1024)}MB까지 업로드 가능합니다"
+                        )
+                    
+                    await f.write(chunk)
+        
+        except Exception as e:
+            # 오류 발생 시 임시 파일 삭제
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            
+            if isinstance(e, HTTPException):
+                raise e
+            else:
+                raise HTTPException(status_code=500, detail=f"파일 저장 중 오류가 발생했습니다: {str(e)}")
+        
+        return unique_filename
+    
     def move_temp_to_permanent(self, temp_filename: str, post_id: str = None) -> str:
         """임시 파일을 영구 저장소로 이동"""
         temp_path = os.path.join(TEMP_DIR, temp_filename)
